@@ -8,6 +8,10 @@ The card-call narrator started as the browser's Web Speech API (`SpeechSynthesis
 
 Instead: since the announcement text is always one of the same 54 fixed Spanish card names, every clip was generated **once**, per narrator persona, as a batch job, and committed as static `.mp3` files under `public/audio/narrators/<slug>/<card-id>.mp3`. The deployed game just plays the right static file — zero TTS API calls happen during actual gameplay, so there's no runtime dependency on ElevenLabs at all, no key in the browser, and no risk of hitting rate limits mid-game. Total one-time cost for 4 voices × 54 cards was a few thousand characters, well under the free tier's ~10,000 credit/month allowance. Regenerating (new voice, edited card list) means re-running the batch script with a fresh API key — not something the deployed app ever needs to do itself.
 
+## ElevenLabs free tier can't use community/shared voices via the API at all
+
+Wanted a "goth girl" narrator persona. ElevenLabs' community voice library (`/v1/shared-voices`) has plenty of well-matched options — "Vivien - Mysterious Witch", "Lilith - Sensual and Scary", etc. — and some are even flagged `free_users_allowed: true` in the search response. That flag is misleading: calling `/v1/text-to-speech/{voice_id}` on any shared-library voice from a free account returns `402 payment_required` / `"Free users cannot use library voices via the API"`, regardless of that flag. Free tier is restricted to the ~21 voices in the account's own default premade library (the same ones used for the other narrators). Worked around it by picking the closest-fitting premade voice ("Lily - Velvety Actress") and pushing `voice_settings` (`stability: 0.3`, `style: 0.75`) for a moodier, more dramatic delivery instead of getting the exact character voice.
+
 ## Windows filesystem is case-insensitive
 
 `Room.jsx` and `room.js` collided at build time — Vite/Rolldown resolved imports to the wrong file because Windows treats them as the same path. Renamed the API module to `roomApi.js`. Lesson: never name a file the same as another differing only by case, even across extensions, on this platform.

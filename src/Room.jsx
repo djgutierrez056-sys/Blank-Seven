@@ -28,7 +28,12 @@ const NARRATORS = [
   { slug: 'jessica', label: 'Jessica (Playful)' },
   { slug: 'bill', label: 'Bill (Wise Elder)' },
   { slug: 'callum', label: 'Callum (Trickster)' },
+  { slug: 'lily-goth', label: 'Lily (Goth)' },
 ]
+// 'system' is special-cased: instead of a pre-generated clip, it uses the
+// browser's own SpeechSynthesis voices (e.g. "Google español"), which vary
+// per device — everything else is a static ElevenLabs clip (see LEARNT.md).
+const SYSTEM_NARRATOR = 'system'
 const narratorClipUrl = (slug, cardId) => `${import.meta.env.BASE_URL}audio/narrators/${slug}/${cardId}.mp3`
 
 export default function Room() {
@@ -49,6 +54,18 @@ export default function Room() {
   const chatMessagesRef = useRef(null)
   const prevDrawIndexRef = useRef(null)
   const announceAudioRef = useRef(null)
+
+  // Only used for the "system" narrator option — everything else is a
+  // pre-generated static clip and doesn't touch SpeechSynthesis at all.
+  // getVoices() is synchronous once the browser has loaded its voice list,
+  // so no state/effect needed — just call it fresh each time.
+  function pickSystemVoice() {
+    const list = window.speechSynthesis?.getVoices() ?? []
+    return (
+      list.find((v) => v.name.includes('Google') && v.lang === 'es-ES') ||
+      list.find((v) => v.lang.startsWith('es'))
+    )
+  }
 
   const reloadPlayers = useCallback(async () => {
     setPlayers(await fetchPlayers(roomId))
@@ -128,6 +145,24 @@ export default function Room() {
     (card) => {
       if (!soundOn || !card) return
       announceAudioRef.current?.pause() // don't let announcements stack up if calls come in fast
+
+      if (narrator === SYSTEM_NARRATOR) {
+        const synth = window.speechSynthesis
+        if (!synth) return
+        synth.cancel()
+        const utter = new SpeechSynthesisUtterance(card.es)
+        const voice = pickSystemVoice()
+        if (voice) {
+          utter.voice = voice
+          utter.lang = voice.lang
+        } else {
+          utter.lang = 'es-ES'
+        }
+        utter.rate = 0.95
+        synth.speak(utter)
+        return
+      }
+
       const audio = new Audio(narratorClipUrl(narrator, card.id))
       announceAudioRef.current = audio
       audio.play().catch(() => {}) // ignore autoplay-policy rejections
@@ -156,7 +191,10 @@ export default function Room() {
     setSoundOn((prev) => {
       const next = !prev
       localStorage.setItem('chalupa:sound', next ? 'on' : 'off')
-      if (!next) announceAudioRef.current?.pause()
+      if (!next) {
+        announceAudioRef.current?.pause()
+        window.speechSynthesis?.cancel()
+      }
       return next
     })
   }
@@ -167,6 +205,23 @@ export default function Room() {
     localStorage.setItem('chalupa:narrator', nextSlug)
     // Preview so the player can hear the pick without waiting for a card.
     announceAudioRef.current?.pause()
+    window.speechSynthesis?.cancel()
+
+    if (nextSlug === SYSTEM_NARRATOR) {
+      const synth = window.speechSynthesis
+      if (!synth) return
+      const utter = new SpeechSynthesisUtterance('El Gallo')
+      const voice = pickSystemVoice()
+      if (voice) {
+        utter.voice = voice
+        utter.lang = voice.lang
+      } else {
+        utter.lang = 'es-ES'
+      }
+      synth.speak(utter)
+      return
+    }
+
     const audio = new Audio(narratorClipUrl(nextSlug, 1)) // "El Gallo"
     announceAudioRef.current = audio
     audio.play().catch(() => {})
@@ -309,6 +364,7 @@ export default function Room() {
                 {n.label}
               </option>
             ))}
+            <option value={SYSTEM_NARRATOR}>Browser default (Google español, etc.)</option>
           </select>
           <span className={`sync-badge ${justSynced ? 'pulse' : ''}`}>🟢 Live</span>
           <p>{players.length} player{players.length === 1 ? '' : 's'}</p>

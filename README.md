@@ -67,9 +67,12 @@ become the caller) or **join a room** with the code someone shares with you.
 Every called card is announced out loud in Spanish, so players don't have to
 keep watching the caller strip. Pick a narrator persona from the dropdown in
 the header — **Daniel** (broadcaster), **Jessica** (playful), **Bill** (wise
-elder), or **Callum** (trickster) — and mute it with the 🔔 toggle next to it.
+elder), **Callum** (trickster), or **Lily** (goth) — plus a **Browser
+default** option that uses whatever `SpeechSynthesis` voices are installed
+on your own device (e.g. "Google español") instead of a fixed persona. Mute
+any of them with the 🔔 toggle next to the dropdown.
 
-Each narrator's 54 card-name clips are pre-generated (via ElevenLabs) and
+Each ElevenLabs narrator's 54 card-name clips are pre-generated and
 committed as static files under `public/audio/narrators/<slug>/<card-id>.mp3`
 — the deployed game just plays the right file, no API calls or keys involved
 at runtime. To add a narrator or regenerate clips (e.g. after editing
