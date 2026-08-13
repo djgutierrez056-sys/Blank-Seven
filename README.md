@@ -51,7 +51,7 @@ become the caller) or **join a room** with the code someone shares with you.
 ## How a round works
 
 - The caller clicks **Start calling**, then cards call themselves
-  automatically every 6 seconds from a shuffled 54-card deck.
+  automatically every 4 seconds from a shuffled 54-card deck.
 - Players tap cards directly on their own board to mark them — nothing on
   screen tells you which cards have actually been called, so you have to
   pay attention to the caller like in the real game.

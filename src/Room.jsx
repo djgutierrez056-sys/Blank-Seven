@@ -18,7 +18,7 @@ import {
 } from './roomApi'
 
 const cardById = new Map(CARDS.map((c) => [c.id, c]))
-const DRAW_INTERVAL_MS = 6000
+const DRAW_INTERVAL_MS = 4000
 
 export default function Room() {
   const { roomId } = useParams()
