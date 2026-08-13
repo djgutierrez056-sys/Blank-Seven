@@ -1,9 +1,12 @@
-// Jitsi tightened iframe-embedding on meet.jit.si for external sites
-// (anti-abuse), which made the old External API embed just show a dark
-// screen with the logo instead of actually connecting. Opening the room
-// directly in its own tab sidesteps that entirely — same free service,
-// no embedding restrictions.
+import { useState } from 'react'
+
+// Plain declarative iframe, scoped to a room-specific Jitsi room name.
+// The `allow="microphone"` attribute is what actually matters here — the
+// browser's Permissions Policy blocks a cross-origin iframe from using the
+// mic unless the parent page explicitly delegates it, which is what caused
+// the earlier script-driven embed to get stuck on a dark screen.
 export default function VoiceChat({ roomId, playerName }) {
+  const [joined, setJoined] = useState(false)
   const roomName = `chalupa-voice-${roomId}`
   const url =
     `https://meet.jit.si/${roomName}` +
@@ -13,9 +16,21 @@ export default function VoiceChat({ roomId, playerName }) {
   return (
     <div className="voice-chat">
       <h2>Voice chat</h2>
-      <a className="voice-link" href={url} target="_blank" rel="noopener noreferrer">
-        🎙️ Open voice chat
-      </a>
+      {!joined && (
+        <button onClick={() => setJoined(true)}>🎙️ Join voice</button>
+      )}
+      {joined && (
+        <>
+          <button onClick={() => setJoined(false)}>Leave voice</button>
+          <iframe
+            key={roomName}
+            className="voice-frame"
+            src={url}
+            allow="camera; microphone; fullscreen; display-capture; autoplay"
+            title="Voice chat"
+          />
+        </>
+      )}
     </div>
   )
 }
