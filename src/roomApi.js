@@ -120,6 +120,20 @@ export async function toggleMark(player, cardId) {
   return data
 }
 
+// Deals a fresh random board to a player. Only meant to be called before
+// any card has been called (the caller decides when to allow it), so there
+// are no marks to worry about losing.
+export async function reshuffleTabla(player) {
+  const { data, error } = await supabase
+    .from('players')
+    .update({ tabla: randomTabla().map((c) => c.id), marked: [] })
+    .eq('id', player.id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
 // Removes marks for cards that were never actually drawn — used after a
 // failed Chalupa claim so a mistaken tap doesn't linger as a false mark.
 export async function pruneUnverifiedMarks(room, player) {

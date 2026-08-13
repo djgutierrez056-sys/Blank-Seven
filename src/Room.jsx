@@ -9,6 +9,7 @@ import {
   setPaused,
   toggleMark,
   claimChalupa,
+  reshuffleTabla,
   pruneUnverifiedMarks,
   startNewRound,
   fetchMessages,
@@ -227,6 +228,20 @@ export default function Room() {
     }
   }
 
+  async function handleReshuffleBoard() {
+    if (!me || currentCard) return
+    setBusy(true)
+    setActionError('')
+    try {
+      const updated = await reshuffleTabla(me)
+      setPlayers((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+    } catch (err) {
+      setActionError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function handleClaim() {
     setBusy(true)
     setActionError('')
@@ -415,6 +430,17 @@ export default function Room() {
                   )
                 })}
               </div>
+
+              {!currentCard && (
+                <button
+                  className="reshuffle-btn"
+                  disabled={busy}
+                  onClick={handleReshuffleBoard}
+                  title="Deal yourself a different board before calling starts"
+                >
+                  🔀 Change my board
+                </button>
+              )}
 
               <button
                 className="chalupa-btn"

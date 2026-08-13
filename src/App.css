@@ -190,6 +190,14 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .chalupa-btn { font-size: 1.4rem; padding: 14px 32px; border-radius: 999px; }
 
+.reshuffle-btn {
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  background: var(--paper);
+  color: var(--ink);
+  border-color: #d9b98a;
+}
+
 .auto-note { font-style: italic; color: #7a5c3e; }
 
 .players-list ul, .leaderboard ul { list-style: none; padding: 0; margin: 0; }
