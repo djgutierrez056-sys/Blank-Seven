@@ -22,7 +22,8 @@ create table if not exists players (
   tabla jsonb not null,                    -- array of 16 card ids for this player's board
   marked jsonb not null default '[]'::jsonb, -- array of card ids the player has marked
   wins int not null default 0,             -- lifetime round wins in this room, for the leaderboard
-  joined_at timestamptz not null default now()
+  joined_at timestamptz not null default now(),
+  last_active_at timestamptz not null default now() -- bumped on any change; drives 1h inactivity kick
 );
 
 create table if not exists messages (
@@ -99,4 +100,32 @@ select cron.schedule(
   'chalupa-room-expiry',
   '0 * * * *', -- every hour, on the hour
   $$ delete from rooms where last_active_at < now() - interval '24 hours' $$
+);
+
+-- Inactive-player cleanup: a player who hasn't marked a card or otherwise
+-- touched their row in over an hour gets removed from the room, so a dead
+-- browser tab doesn't linger in the player list/leaderboard forever. The
+-- caller is exempt -- once calling starts, cards auto-advance via the
+-- rooms table, not the caller's own players row, so a caller who's quietly
+-- hosting without clicking anything would otherwise look "inactive" and
+-- get wrongly kicked mid-game.
+alter table players add column if not exists last_active_at timestamptz not null default now();
+
+create or replace function touch_player_last_active()
+returns trigger as $$
+begin
+  new.last_active_at := now();
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists players_self_touch_last_active on players;
+create trigger players_self_touch_last_active
+  before update on players
+  for each row execute function touch_player_last_active();
+
+select cron.schedule(
+  'chalupa-inactive-player-cleanup',
+  '*/15 * * * *', -- every 15 minutes, for tighter precision than the 1h window
+  $$ delete from players where last_active_at < now() - interval '1 hour' and is_caller = false $$
 );

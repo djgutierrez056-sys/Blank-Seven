@@ -100,6 +100,18 @@ can check scheduled jobs anytime with `select * from cron.job;` in the SQL
 editor, and see run history with `select * from cron.job_run_details order
 by start_time desc limit 20;`.
 
+## Inactive-player cleanup
+
+A player who hasn't marked a card (or otherwise touched their own row) in
+over **an hour** gets removed from the room automatically — a `pg_cron`
+job checks every 15 minutes and deletes any `players` row whose
+`last_active_at` is more than an hour old, so a dead browser tab doesn't
+linger in the player list or leaderboard forever. The **caller is exempt**:
+once calling starts, cards auto-advance via the `rooms` table rather than
+the caller's own `players` row, so a caller who's quietly hosting without
+clicking anything would otherwise look inactive and get wrongly kicked
+mid-game. Uses the same `pg_cron` setup as room expiry above.
+
 ## Voice chat
 
 Each room has an optional **Join voice** button that connects players to a
