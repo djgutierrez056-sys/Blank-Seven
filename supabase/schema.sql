@@ -8,6 +8,7 @@ create table if not exists rooms (
   status text not null default 'waiting',  -- waiting | playing | finished
   deck jsonb not null default '[]'::jsonb, -- shuffled array of card ids, draw order
   draw_index int not null default 0,       -- how many cards from `deck` have been called
+  paused boolean not null default false,   -- caller-triggered break; halts auto-calling
   winner_player_id uuid,
   created_at timestamptz not null default now()
 );

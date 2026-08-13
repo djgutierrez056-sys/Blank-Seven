@@ -5,6 +5,7 @@ import {
   fetchRoom,
   fetchPlayers,
   drawNextCard,
+  setPaused,
   toggleMark,
   claimChalupa,
   pruneUnverifiedMarks,
@@ -63,7 +64,7 @@ export default function Room() {
   // Everyone else just receives the resulting room update over realtime.
   useEffect(() => {
     if (!room || !me?.is_caller) return
-    if (room.status !== 'playing') return
+    if (room.status !== 'playing' || room.paused) return
     if (room.draw_index >= room.deck.length) return
 
     const timer = setTimeout(() => {
@@ -122,6 +123,18 @@ export default function Room() {
     }
   }
 
+  async function handleTogglePause() {
+    setBusy(true)
+    setActionError('')
+    try {
+      setRoom(await setPaused(room, !room.paused))
+    } catch (err) {
+      setActionError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function handleNewRound() {
     setBusy(true)
     setActionError('')
@@ -157,6 +170,10 @@ export default function Room() {
         </div>
       )}
 
+      {room.paused && room.status === 'playing' && (
+        <div className="paused-banner">⏸️ Game paused{me?.is_caller ? '' : ' by the caller'}</div>
+      )}
+
       <section className="caller-strip">
         {currentCard ? (
           <div className="current-card">
@@ -172,7 +189,14 @@ export default function Room() {
           </button>
         )}
         {me?.is_caller && room.status === 'playing' && !deckExhausted && (
-          <span className="auto-note">Cards call automatically every {DRAW_INTERVAL_MS / 1000}s</span>
+          <>
+            {!room.paused && (
+              <span className="auto-note">Cards call automatically every {DRAW_INTERVAL_MS / 1000}s</span>
+            )}
+            <button disabled={busy} onClick={handleTogglePause}>
+              {room.paused ? 'Resume' : 'Pause'}
+            </button>
+          </>
         )}
         {deckExhausted && room.status !== 'finished' && <span className="auto-note">Deck empty</span>}
       </section>

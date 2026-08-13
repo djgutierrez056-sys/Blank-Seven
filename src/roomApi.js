@@ -90,6 +90,17 @@ export async function drawNextCard(room) {
   return data
 }
 
+export async function setPaused(room, paused) {
+  const { data, error } = await supabase
+    .from('rooms')
+    .update({ paused })
+    .eq('id', room.id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
 export async function toggleMark(player, cardId) {
   const marked = new Set(player.marked)
   if (marked.has(cardId)) marked.delete(cardId)
@@ -149,7 +160,7 @@ export async function startNewRound(room, players) {
 
   const { data: nextRoom, error: roomError } = await supabase
     .from('rooms')
-    .update({ deck, draw_index: 0, status: 'waiting', winner_player_id: null })
+    .update({ deck, draw_index: 0, status: 'waiting', winner_player_id: null, paused: false })
     .eq('id', room.id)
     .select()
     .single()

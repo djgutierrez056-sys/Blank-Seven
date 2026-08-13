@@ -87,6 +87,16 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .new-round-btn { font-size: 1rem; }
 
+.paused-banner {
+  background: #f3d9a4;
+  border: 2px solid #c98a2c;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
 .caller-strip {
   display: flex;
   justify-content: space-between;
