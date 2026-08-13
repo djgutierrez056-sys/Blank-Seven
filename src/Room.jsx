@@ -1,0 +1,224 @@
+import { useEffect, useState, useCallback } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { CARDS } from './cards'
+import {
+  fetchRoom,
+  fetchPlayers,
+  drawNextCard,
+  toggleMark,
+  claimChalupa,
+  pruneUnverifiedMarks,
+  startNewRound,
+  subscribeToRoom,
+} from './roomApi'
+
+const cardById = new Map(CARDS.map((c) => [c.id, c]))
+const DRAW_INTERVAL_MS = 6000
+
+export default function Room() {
+  const { roomId } = useParams()
+  const navigate = useNavigate()
+  const playerId = localStorage.getItem(`chalupa:${roomId}:playerId`)
+
+  const [room, setRoom] = useState(null)
+  const [players, setPlayers] = useState([])
+  const [loadError, setLoadError] = useState('')
+  const [actionError, setActionError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const reloadPlayers = useCallback(async () => {
+    setPlayers(await fetchPlayers(roomId))
+  }, [roomId])
+
+  useEffect(() => {
+    if (!playerId) {
+      navigate('/')
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const [r] = await Promise.all([fetchRoom(roomId), reloadPlayers()])
+        if (!cancelled) setRoom(r)
+      } catch (err) {
+        if (!cancelled) setLoadError(err.message)
+      }
+    })()
+
+    const unsubscribe = subscribeToRoom(
+      roomId,
+      (updatedRoom) => setRoom(updatedRoom),
+      () => reloadPlayers()
+    )
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [roomId, playerId, navigate, reloadPlayers])
+
+  const me = players.find((p) => p.id === playerId)
+
+  // The caller's own browser is the "clock": once the round is playing, it
+  // schedules the next draw a fixed interval after the last one landed.
+  // Everyone else just receives the resulting room update over realtime.
+  useEffect(() => {
+    if (!room || !me?.is_caller) return
+    if (room.status !== 'playing') return
+    if (room.draw_index >= room.deck.length) return
+
+    const timer = setTimeout(() => {
+      drawNextCard(room).catch((err) => setActionError(err.message))
+    }, DRAW_INTERVAL_MS)
+    return () => clearTimeout(timer)
+  }, [room, me?.is_caller])
+
+  if (!playerId) return null
+  if (loadError) return <p className="error">{loadError}</p>
+  if (!room) return <p>Loading room {roomId}...</p>
+
+  const calledOrder = room.deck.slice(0, room.draw_index)
+  const currentCardId = calledOrder.length ? calledOrder[calledOrder.length - 1] : null
+  const currentCard = currentCardId ? cardById.get(currentCardId) : null
+  const winner = players.find((p) => p.id === room.winner_player_id)
+  const deckExhausted = room.draw_index >= room.deck.length
+
+  async function handleStart() {
+    setBusy(true)
+    setActionError('')
+    try {
+      setRoom(await drawNextCard(room))
+    } catch (err) {
+      setActionError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleToggle(cardId) {
+    if (!me || room.status === 'finished') return
+    try {
+      const updated = await toggleMark(me, cardId)
+      setPlayers((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+    } catch (err) {
+      setActionError(err.message)
+    }
+  }
+
+  async function handleClaim() {
+    setBusy(true)
+    setActionError('')
+    try {
+      setRoom(await claimChalupa(room, me))
+    } catch (err) {
+      setActionError(err.message)
+      try {
+        const updated = await pruneUnverifiedMarks(room, me)
+        setPlayers((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+      } catch {
+        // best-effort cleanup; the claim error above is already shown
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleNewRound() {
+    setBusy(true)
+    setActionError('')
+    try {
+      const { room: nextRoom, players: nextPlayers } = await startNewRound(room, players)
+      setRoom(nextRoom)
+      setPlayers(nextPlayers)
+    } catch (err) {
+      setActionError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const canClaim =
+    room.status !== 'finished' && me && me.tabla.every((id) => me.marked.includes(id))
+
+  return (
+    <div className="room">
+      <header className="room-header">
+        <h1>Room {roomId}</h1>
+        <p>{players.length} player{players.length === 1 ? '' : 's'}</p>
+      </header>
+
+      {winner && (
+        <div className="winner-banner">
+          🏆 {winner.name} shouted <strong>¡Chalupa!</strong> and won!
+          {me?.is_caller && (
+            <button className="new-round-btn" disabled={busy} onClick={handleNewRound}>
+              Play again
+            </button>
+          )}
+        </div>
+      )}
+
+      <section className="caller-strip">
+        {currentCard ? (
+          <div className="current-card">
+            <span className="art">{currentCard.art}</span>
+            <span>{currentCard.es} <em>({currentCard.en})</em></span>
+          </div>
+        ) : (
+          <div className="current-card">No card called yet</div>
+        )}
+        {me?.is_caller && room.status === 'waiting' && (
+          <button disabled={busy} onClick={handleStart}>
+            Start calling
+          </button>
+        )}
+        {me?.is_caller && room.status === 'playing' && !deckExhausted && (
+          <span className="auto-note">Cards call automatically every {DRAW_INTERVAL_MS / 1000}s</span>
+        )}
+        {deckExhausted && room.status !== 'finished' && <span className="auto-note">Deck empty</span>}
+      </section>
+
+      {me && (
+        <section className="board-section">
+          <div className="board">
+            {me.tabla.map((cardId) => {
+              const card = cardById.get(cardId)
+              const marked = me.marked.includes(cardId)
+              return (
+                <button
+                  key={cardId}
+                  className={`cell ${marked ? 'marked' : ''}`}
+                  onClick={() => handleToggle(cardId)}
+                  title={card.es}
+                >
+                  <span className="art">{card.art}</span>
+                  <span className="name">{card.es}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          <button
+            className="chalupa-btn"
+            disabled={!canClaim || busy}
+            onClick={handleClaim}
+          >
+            ¡Chalupa!
+          </button>
+        </section>
+      )}
+
+      <section className="players-list">
+        <h2>Players</h2>
+        <ul>
+          {players.map((p) => (
+            <li key={p.id}>
+              {p.name} {p.is_caller && '📣'} — {p.marked.length}/16
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {actionError && <p className="error">{actionError}</p>}
+    </div>
+  )
+}
