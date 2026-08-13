@@ -60,29 +60,49 @@ become the caller) or **join a room** with the code someone shares with you.
 
 ## Voice chat
 
-Each room has an optional **Join voice** button that opens an audio-only
-[Jitsi Meet](https://meet.jit.si) session for that room **in a new browser
-tab**, rather than embedded inline. It's a free, public third-party
-service — no signup, no API key, no payment method required.
+Each room has an optional **Join voice** button that connects players to a
+shared audio-only [LiveKit](https://livekit.io) room scoped to that game,
+embedded directly in the game UI (no iframe, no new tab). LiveKit is a
+self-served WebRTC SFU — LiveKit Cloud's free tier includes 5,000 WebRTC
+minutes/month with **no credit card required**.
 
-It opens in a new tab rather than embedding because `meet.jit.si` actively
+### Set up LiveKit
+
+1. Create a free account at [cloud.livekit.io](https://cloud.livekit.io) (no
+   payment method required).
+2. Create a project. Note its **WebSocket URL** (`wss://your-project.livekit.cloud`)
+   and generate an **API Key** + **API Secret** from **Settings → Keys**.
+3. Add three secrets to your Supabase project (**Edge Functions → Secrets**,
+   or via CLI: `supabase secrets set --project-ref your-project-ref
+   LIVEKIT_URL=wss://your-project.livekit.cloud LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=...`):
+   - `LIVEKIT_URL`
+   - `LIVEKIT_API_KEY`
+   - `LIVEKIT_API_SECRET`
+4. Deploy the Edge Function: `supabase functions deploy livekit-token
+   --project-ref your-project-ref`. It mints a short-lived (4h) per-player
+   access token; the API key/secret never reach the browser.
+
+No client-side env vars are needed for voice — `VoiceChat.jsx` calls the
+`livekit-token` function to get a token + room URL, then connects with the
+`livekit-client` SDK and plays remote participants' audio directly.
+
+### Why not Jitsi?
+
+An earlier version tried embedding plain `meet.jit.si`, which actively
 restricts iframe embedding from third-party domains (anti-abuse policy) —
-an embedded call gets stuck on a dark screen with just the logo and never
-actually connects, so no audio flows even though the frame "loads" (see
-`LEARNT.md`). Opening the room directly isn't subject to that restriction
-and reliably connects. The tradeoff is players have to switch tabs to talk
-instead of it living in the game UI.
+the call got stuck on a dark screen and never actually connected, so no
+audio flowed even though the frame "loaded" (see `LEARNT.md`). A working
+interim fix opened Jitsi in a new tab instead of embedding it, which
+avoided the restriction but meant leaving the game UI to talk. LiveKit
+replaces that: it's a real SFU you control access to via signed tokens,
+so it embeds inline and doesn't hit an anti-abuse wall.
 
-(There's a path back to an inline embed via **JaaS**, Jitsi's own hosted
-embedding product, which authenticates embeds with a signed JWT and isn't
-subject to the anti-abuse restriction — but it requires a JaaS account and
-a Supabase Edge Function to mint tokens server-side, more setup than the
-new-tab approach. An earlier version also used Daily.co with a Supabase
-Edge Function for per-room isolation, but Daily now requires a payment
-method on file even for its free tier, so that was dropped too. The Edge
-Function code is still in `supabase/functions/create-voice-room` if you
-want to revisit that path — you'd need to redeploy `VoiceChat.jsx` to call
-it again and add a card to your Daily account.)
+(An even earlier version used Daily.co with a Supabase Edge Function for
+per-room isolation, but Daily now requires a payment method on file even
+for its free tier, so that was dropped. The Edge Function code is still in
+`supabase/functions/create-voice-room` if you want to revisit that path —
+you'd need to redeploy `VoiceChat.jsx` to call it again and add a card to
+your Daily account.)
 
 ## Deploying to GitHub Pages
 

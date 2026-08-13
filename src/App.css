@@ -211,7 +211,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   padding: 10px;
 }
 .voice-chat h2 { font-size: 0.85rem; margin: 0 0 6px; }
-.voice-chat button { font-size: 0.85rem; padding: 6px 10px; }
+.voice-chat button { font-size: 0.85rem; padding: 6px 10px; margin-right: 6px; }
+.voice-status { font-size: 0.8rem; color: #7a6a52; margin: 0 0 6px; }
+.voice-error { font-size: 0.8rem; color: #a33; margin: 6px 0 0; }
 .voice-frame {
   display: block;
   width: 100%;

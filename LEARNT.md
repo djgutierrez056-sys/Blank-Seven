@@ -26,9 +26,9 @@ A cross-origin iframe can't access `getUserMedia` (camera/mic) unless the parent
 
 `meet.jit.si`'s script-driven External API embed (`JitsiMeetExternalAPI`) got stuck on a dark screen with just the logo when embedded from an external domain — likely Jitsi's anti-abuse policy for third-party embeds, separate from the mic-permission issue above. A plain declarative `<iframe src="https://meet.jit.si/...">` also got stuck the same way (confirmed: dark screen, just the logo, no toolbar) — the restriction applies to both embedding methods, not just the scripted one. This is why "no one can hear me" happened even though the mic-permission and `allow=` attribute setup was correct: the call never actually connected, so there was nothing to hear regardless of mic state.
 
-Fix applied: stopped embedding it. `VoiceChat.jsx` now just links to `https://meet.jit.si/<room>` with `target="_blank"`, opening it in its own tab — not subject to the iframe anti-abuse restriction, so it actually connects. Tradeoff: voice no longer lives inside the game UI.
+Interim fix: stopped embedding it. `VoiceChat.jsx` briefly just linked to `https://meet.jit.si/<room>` with `target="_blank"`, opening it in its own tab — not subject to the iframe anti-abuse restriction, so it actually connected. Tradeoff: voice didn't live inside the game UI.
 
-An inline embed is still possible via **JaaS (8x8.vc)**, Jitsi's own hosted embedding product — embeds are authenticated with a signed JWT, which isn't subject to the anonymous-embed restriction. Not implemented (needs a JaaS account + a Supabase Edge Function to mint tokens server-side); revisit if the new-tab UX becomes a real problem.
+Final fix: switched providers entirely to **LiveKit Cloud** — a real WebRTC SFU you connect to directly with the `livekit-client` SDK (no iframe involved at all, so the embed-restriction problem doesn't apply). Access tokens are minted server-side by `supabase/functions/livekit-token` using `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` secrets; the secret never reaches the browser. LiveKit Cloud's free tier (5,000 WebRTC minutes/month) requires no credit card, unlike Daily.co. See the "Voice chat" section in `README.md` for setup.
 
 ## "Free tier" services often still require a card on file
 
