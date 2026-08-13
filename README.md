@@ -62,6 +62,23 @@ become the caller) or **join a room** with the code someone shares with you.
 - After a round ends, the caller can hit **Play again** to reshuffle and deal
   fresh boards without leaving the room.
 
+## Card-call narrator
+
+Every called card is announced out loud in Spanish, so players don't have to
+keep watching the caller strip. Pick a narrator persona from the dropdown in
+the header — **Daniel** (broadcaster), **Jessica** (playful), **Bill** (wise
+elder), or **Callum** (trickster) — and mute it with the 🔔 toggle next to it.
+
+Each narrator's 54 card-name clips are pre-generated (via ElevenLabs) and
+committed as static files under `public/audio/narrators/<slug>/<card-id>.mp3`
+— the deployed game just plays the right file, no API calls or keys involved
+at runtime. To add a narrator or regenerate clips (e.g. after editing
+`src/cards.js`), you need a free [ElevenLabs](https://elevenlabs.io) API key
+(no card required) with **Text to Speech** access, then run a batch script
+against the `/v1/text-to-speech/{voice_id}` endpoint for each card — see
+`LEARNT.md` for the reasoning behind pre-generating instead of calling the
+API live during gameplay.
+
 ## Room expiry
 
 Rooms are deleted automatically after **24 hours of no activity** — no

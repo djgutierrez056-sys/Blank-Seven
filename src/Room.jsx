@@ -20,6 +20,17 @@ import {
 const cardById = new Map(CARDS.map((c) => [c.id, c]))
 const DRAW_INTERVAL_MS = 4000
 
+// Pre-generated ElevenLabs clips for all 54 card names, one set per
+// narrator persona — see LEARNT.md. Static files, so no TTS API calls (and
+// no rate limits/quota) happen during actual gameplay.
+const NARRATORS = [
+  { slug: 'daniel', label: 'Daniel (Broadcaster)' },
+  { slug: 'jessica', label: 'Jessica (Playful)' },
+  { slug: 'bill', label: 'Bill (Wise Elder)' },
+  { slug: 'callum', label: 'Callum (Trickster)' },
+]
+const narratorClipUrl = (slug, cardId) => `${import.meta.env.BASE_URL}audio/narrators/${slug}/${cardId}.mp3`
+
 export default function Room() {
   const { roomId } = useParams()
   const navigate = useNavigate()
@@ -34,31 +45,10 @@ export default function Room() {
   const [busy, setBusy] = useState(false)
   const [justSynced, setJustSynced] = useState(false)
   const [soundOn, setSoundOn] = useState(() => localStorage.getItem('chalupa:sound') !== 'off')
-  const [voices, setVoices] = useState([])
-  const [voiceURI, setVoiceURI] = useState(() => localStorage.getItem('chalupa:voiceURI') || '')
+  const [narrator, setNarrator] = useState(() => localStorage.getItem('chalupa:narrator') || 'daniel')
   const chatMessagesRef = useRef(null)
   const prevDrawIndexRef = useRef(null)
-
-  // Available narrator voices differ per browser/device, so this is a
-  // personal preference (localStorage), not shared room state. The voice
-  // list often loads asynchronously after page load, hence 'voiceschanged'.
-  useEffect(() => {
-    const synth = window.speechSynthesis
-    if (!synth) return
-    const loadVoices = () => {
-      const list = synth.getVoices()
-      setVoices(list)
-      // Default to "Google español" the first time voices load, if the
-      // player hasn't already picked something (no saved preference yet).
-      if (localStorage.getItem('chalupa:voiceURI') === null) {
-        const googleEs = list.find((v) => v.name.includes('Google') && v.lang === 'es-ES')
-        if (googleEs) setVoiceURI(googleEs.voiceURI)
-      }
-    }
-    loadVoices()
-    synth.addEventListener('voiceschanged', loadVoices)
-    return () => synth.removeEventListener('voiceschanged', loadVoices)
-  }, [])
+  const announceAudioRef = useRef(null)
 
   const reloadPlayers = useCallback(async () => {
     setPlayers(await fetchPlayers(roomId))
@@ -137,21 +127,12 @@ export default function Room() {
   const announceCard = useCallback(
     (card) => {
       if (!soundOn || !card) return
-      const synth = window.speechSynthesis
-      if (!synth) return
-      synth.cancel() // don't let announcements stack up if calls come in fast
-      const utter = new SpeechSynthesisUtterance(card.es)
-      const chosenVoice = synth.getVoices().find((v) => v.voiceURI === voiceURI)
-      if (chosenVoice) {
-        utter.voice = chosenVoice
-        utter.lang = chosenVoice.lang
-      } else {
-        utter.lang = 'es-ES'
-      }
-      utter.rate = 0.95
-      synth.speak(utter)
+      announceAudioRef.current?.pause() // don't let announcements stack up if calls come in fast
+      const audio = new Audio(narratorClipUrl(narrator, card.id))
+      announceAudioRef.current = audio
+      audio.play().catch(() => {}) // ignore autoplay-policy rejections
     },
-    [soundOn, voiceURI]
+    [soundOn, narrator]
   )
 
   // Announces the card name out loud whenever a new one gets called, so
@@ -175,28 +156,20 @@ export default function Room() {
     setSoundOn((prev) => {
       const next = !prev
       localStorage.setItem('chalupa:sound', next ? 'on' : 'off')
-      if (!next) window.speechSynthesis?.cancel()
+      if (!next) announceAudioRef.current?.pause()
       return next
     })
   }
 
-  function handleVoiceChange(e) {
-    const nextURI = e.target.value
-    setVoiceURI(nextURI)
-    localStorage.setItem('chalupa:voiceURI', nextURI)
+  function handleNarratorChange(e) {
+    const nextSlug = e.target.value
+    setNarrator(nextSlug)
+    localStorage.setItem('chalupa:narrator', nextSlug)
     // Preview so the player can hear the pick without waiting for a card.
-    const synth = window.speechSynthesis
-    if (!synth) return
-    synth.cancel()
-    const utter = new SpeechSynthesisUtterance('El Gallo')
-    const chosenVoice = synth.getVoices().find((v) => v.voiceURI === nextURI)
-    if (chosenVoice) {
-      utter.voice = chosenVoice
-      utter.lang = chosenVoice.lang
-    } else {
-      utter.lang = 'es-ES'
-    }
-    synth.speak(utter)
+    announceAudioRef.current?.pause()
+    const audio = new Audio(narratorClipUrl(nextSlug, 1)) // "El Gallo"
+    announceAudioRef.current = audio
+    audio.play().catch(() => {})
   }
 
   if (!playerId) return null
@@ -208,12 +181,6 @@ export default function Room() {
   const currentCard = currentCardId ? cardById.get(currentCardId) : null
   const winner = players.find((p) => p.id === room.winner_player_id)
   const deckExhausted = room.draw_index >= room.deck.length
-  // Spanish voices first since card names are Spanish, then everything else.
-  const sortedVoices = [...voices].sort((a, b) => {
-    const aEs = a.lang.startsWith('es') ? 0 : 1
-    const bEs = b.lang.startsWith('es') ? 0 : 1
-    return aEs - bEs || a.name.localeCompare(b.name)
-  })
 
   async function handleStart() {
     setBusy(true)
@@ -330,22 +297,19 @@ export default function Room() {
           >
             {soundOn ? '🔔' : '🔕'}
           </button>
-          {sortedVoices.length > 0 && (
-            <select
-              className="voice-select"
-              value={voiceURI}
-              onChange={handleVoiceChange}
-              disabled={!soundOn}
-              title="Narrator voice"
-            >
-              <option value="">Default narrator</option>
-              {sortedVoices.map((v) => (
-                <option key={v.voiceURI} value={v.voiceURI}>
-                  {v.name} ({v.lang})
-                </option>
-              ))}
-            </select>
-          )}
+          <select
+            className="voice-select"
+            value={narrator}
+            onChange={handleNarratorChange}
+            disabled={!soundOn}
+            title="Narrator voice"
+          >
+            {NARRATORS.map((n) => (
+              <option key={n.slug} value={n.slug}>
+                {n.label}
+              </option>
+            ))}
+          </select>
           <span className={`sync-badge ${justSynced ? 'pulse' : ''}`}>🟢 Live</span>
           <p>{players.length} player{players.length === 1 ? '' : 's'}</p>
         </div>

@@ -2,6 +2,12 @@
 
 Technical lessons and gotchas discovered while building Chalupa. Kept here so future work doesn't rediscover them the hard way.
 
+## Pre-generate TTS instead of calling it live, when the text is a fixed set
+
+The card-call narrator started as the browser's Web Speech API (`SpeechSynthesis`), which only offers whatever voices happen to be installed on each player's own device — inconsistent, and not "different people's voices" so much as different languages/accents of whatever the OS ships. Real character voices meant a cloud TTS provider (ElevenLabs — free tier, no card, see the room README's "Voice chat" section for the pattern used to find that out for LiveKit too). The naive approach would call the API live every time a card is called, once per client — for an 8-player room that's 8x the API usage for the same announcement, and would burn through a free-tier quota fast.
+
+Instead: since the announcement text is always one of the same 54 fixed Spanish card names, every clip was generated **once**, per narrator persona, as a batch job, and committed as static `.mp3` files under `public/audio/narrators/<slug>/<card-id>.mp3`. The deployed game just plays the right static file — zero TTS API calls happen during actual gameplay, so there's no runtime dependency on ElevenLabs at all, no key in the browser, and no risk of hitting rate limits mid-game. Total one-time cost for 4 voices × 54 cards was a few thousand characters, well under the free tier's ~10,000 credit/month allowance. Regenerating (new voice, edited card list) means re-running the batch script with a fresh API key — not something the deployed app ever needs to do itself.
+
 ## Windows filesystem is case-insensitive
 
 `Room.jsx` and `room.js` collided at build time — Vite/Rolldown resolved imports to the wrong file because Windows treats them as the same path. Renamed the API module to `roomApi.js`. Lesson: never name a file the same as another differing only by case, even across extensions, on this platform.
