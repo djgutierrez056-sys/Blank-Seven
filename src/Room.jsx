@@ -34,7 +34,6 @@ export default function Room() {
   const [justSynced, setJustSynced] = useState(false)
   const [soundOn, setSoundOn] = useState(() => localStorage.getItem('chalupa:sound') !== 'off')
   const chatMessagesRef = useRef(null)
-  const audioCtxRef = useRef(null)
   const prevDrawIndexRef = useRef(null)
 
   const reloadPlayers = useCallback(async () => {
@@ -111,31 +110,24 @@ export default function Room() {
     return () => clearTimeout(timer)
   }, [room, me?.is_caller])
 
-  const playChime = useCallback(() => {
-    if (!soundOn) return
-    const Ctx = window.AudioContext || window.webkitAudioContext
-    if (!Ctx) return
-    if (!audioCtxRef.current) audioCtxRef.current = new Ctx()
-    const ctx = audioCtxRef.current
-    if (ctx.state === 'suspended') ctx.resume().catch(() => {})
+  const announceCard = useCallback(
+    (card) => {
+      if (!soundOn || !card) return
+      const synth = window.speechSynthesis
+      if (!synth) return
+      synth.cancel() // don't let announcements stack up if calls come in fast
+      const utter = new SpeechSynthesisUtterance(card.es)
+      utter.lang = 'es-ES'
+      utter.rate = 0.95
+      synth.speak(utter)
+    },
+    [soundOn]
+  )
 
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.type = 'sine'
-    osc.frequency.value = 880
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.02)
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35)
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.start()
-    osc.stop(ctx.currentTime + 0.4)
-  }, [soundOn])
-
-  // Plays a short chime whenever a new card gets called, so players don't
-  // have to keep their eyes glued to the caller strip. Skips the very first
-  // sync after loading/reconnecting so it doesn't fire for cards that were
-  // already called before this player joined the effect's watch.
+  // Announces the card name out loud whenever a new one gets called, so
+  // players don't have to keep their eyes glued to the caller strip. Skips
+  // the very first sync after loading/reconnecting so it doesn't announce
+  // cards that were already called before this player joined the room.
   useEffect(() => {
     if (!room) return
     if (prevDrawIndexRef.current === null) {
@@ -144,21 +136,16 @@ export default function Room() {
     }
     if (room.draw_index !== prevDrawIndexRef.current) {
       prevDrawIndexRef.current = room.draw_index
-      playChime()
+      const calledId = room.deck[room.draw_index - 1]
+      announceCard(cardById.get(calledId))
     }
-  }, [room, playChime])
+  }, [room, announceCard])
 
   function toggleSound() {
     setSoundOn((prev) => {
       const next = !prev
       localStorage.setItem('chalupa:sound', next ? 'on' : 'off')
-      // Unlock the AudioContext from this click (a real user gesture) so
-      // later programmatic chimes aren't blocked by autoplay policy.
-      const Ctx = window.AudioContext || window.webkitAudioContext
-      if (next && Ctx) {
-        if (!audioCtxRef.current) audioCtxRef.current = new Ctx()
-        audioCtxRef.current.resume().catch(() => {})
-      }
+      if (!next) window.speechSynthesis?.cancel()
       return next
     })
   }
@@ -270,7 +257,7 @@ export default function Room() {
           <button
             className="sound-toggle-btn"
             onClick={toggleSound}
-            title={soundOn ? 'Mute card-call sound' : 'Unmute card-call sound'}
+            title={soundOn ? 'Mute card-call announcements' : 'Unmute card-call announcements'}
           >
             {soundOn ? '🔔' : '🔕'}
           </button>
