@@ -135,22 +135,32 @@ export async function pruneUnverifiedMarks(room, player) {
 }
 
 // Claims the win: server-side check that every card on the tabla has
-// actually been drawn, so a player can't fake a full board.
+// actually been drawn, so a player can't fake a full board. Also bumps
+// the winner's lifetime win count for the leaderboard.
 export async function claimChalupa(room, player) {
   const calledIds = new Set(room.deck.slice(0, room.draw_index))
   const fullyMatched = player.tabla.every((cardId) => calledIds.has(cardId))
   if (!fullyMatched) throw new Error('Not all cards on your board have been called yet.')
 
-  const { data, error } = await supabase
+  const { data: nextRoom, error: roomError } = await supabase
     .from('rooms')
     .update({ status: 'finished', winner_player_id: player.id })
     .eq('id', room.id)
     .eq('status', 'playing')
     .select()
     .single()
-  if (error) throw error
-  if (!data) throw new Error('Someone already won this round.')
-  return data
+  if (roomError) throw roomError
+  if (!nextRoom) throw new Error('Someone already won this round.')
+
+  const { data: nextPlayer, error: playerError } = await supabase
+    .from('players')
+    .update({ wins: player.wins + 1 })
+    .eq('id', player.id)
+    .select()
+    .single()
+  if (playerError) throw playerError
+
+  return { room: nextRoom, player: nextPlayer }
 }
 
 // Resets a finished room for another round: fresh shuffled deck, fresh

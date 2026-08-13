@@ -20,6 +20,7 @@ create table if not exists players (
   is_caller boolean not null default false,
   tabla jsonb not null,                    -- array of 16 card ids for this player's board
   marked jsonb not null default '[]'::jsonb, -- array of card ids the player has marked
+  wins int not null default 0,             -- lifetime round wins in this room, for the leaderboard
   joined_at timestamptz not null default now()
 );
 

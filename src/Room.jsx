@@ -121,7 +121,9 @@ export default function Room() {
     setBusy(true)
     setActionError('')
     try {
-      setRoom(await claimChalupa(room, me))
+      const { room: nextRoom, player: nextPlayer } = await claimChalupa(room, me)
+      setRoom(nextRoom)
+      setPlayers((prev) => prev.map((p) => (p.id === nextPlayer.id ? nextPlayer : p)))
     } catch (err) {
       setActionError(err.message)
       try {
@@ -175,6 +177,7 @@ export default function Room() {
 
   const canClaim =
     room.status !== 'finished' && me && me.tabla.every((id) => me.marked.includes(id))
+  const leaderboard = [...players].sort((a, b) => b.wins - a.wins)
 
   return (
     <div className="room">
@@ -184,19 +187,44 @@ export default function Room() {
       </header>
 
       <div className="room-body">
-        <aside className="history">
-          <h2>Called cards</h2>
-          <div className="history-list">
-            {calledOrder.length === 0 && <p className="hint">None yet.</p>}
-            {[...calledOrder].reverse().map((cardId) => {
-              const card = cardById.get(cardId)
-              return (
-                <p key={cardId} className="history-item">
-                  <span className="art">{card.art}</span> {card.es}
-                </p>
-              )
-            })}
-          </div>
+        <aside className="left-sidebar">
+          <section className="leaderboard">
+            <h2>Leaderboard</h2>
+            <ul>
+              {leaderboard.map((p, i) => (
+                <li key={p.id}>
+                  {i === 0 && p.wins > 0 ? '🏆 ' : ''}
+                  {p.name} — {p.wins} win{p.wins === 1 ? '' : 's'}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="players-list">
+            <h2>Players</h2>
+            <ul>
+              {players.map((p) => (
+                <li key={p.id}>
+                  {p.name} {p.is_caller && '📣'} — {p.marked.length}/16
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="history">
+            <h2>Called cards</h2>
+            <div className="history-list">
+              {calledOrder.length === 0 && <p className="hint">None yet.</p>}
+              {[...calledOrder].reverse().map((cardId) => {
+                const card = cardById.get(cardId)
+                return (
+                  <p key={cardId} className="history-item">
+                    <span className="art">{card.art}</span> {card.es}
+                  </p>
+                )
+              })}
+            </div>
+          </section>
         </aside>
 
         <div className="room-main">
@@ -271,17 +299,6 @@ export default function Room() {
               </button>
             </section>
           )}
-
-          <section className="players-list">
-            <h2>Players</h2>
-            <ul>
-              {players.map((p) => (
-                <li key={p.id}>
-                  {p.name} {p.is_caller && '📣'} — {p.marked.length}/16
-                </li>
-              ))}
-            </ul>
-          </section>
 
           {actionError && <p className="error">{actionError}</p>}
         </div>
