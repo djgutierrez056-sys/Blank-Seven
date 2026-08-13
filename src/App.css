@@ -71,7 +71,25 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .room-header { display: flex; justify-content: space-between; align-items: baseline; }
 
+.header-left { display: flex; align-items: baseline; gap: 12px; }
+
+.back-btn {
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  background: var(--paper);
+  color: var(--ink);
+  border-color: #d9b98a;
+}
+
 .header-right { display: flex; align-items: center; gap: 12px; }
+
+.sound-toggle-btn {
+  font-size: 1rem;
+  padding: 6px 10px;
+  background: var(--paper);
+  color: var(--ink);
+  border-color: #d9b98a;
+}
 
 .sync-badge {
   font-size: 0.8rem;

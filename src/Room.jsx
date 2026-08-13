@@ -32,7 +32,10 @@ export default function Room() {
   const [actionError, setActionError] = useState('')
   const [busy, setBusy] = useState(false)
   const [justSynced, setJustSynced] = useState(false)
+  const [soundOn, setSoundOn] = useState(() => localStorage.getItem('chalupa:sound') !== 'off')
   const chatMessagesRef = useRef(null)
+  const audioCtxRef = useRef(null)
+  const prevDrawIndexRef = useRef(null)
 
   const reloadPlayers = useCallback(async () => {
     setPlayers(await fetchPlayers(roomId))
@@ -107,6 +110,58 @@ export default function Room() {
     }, DRAW_INTERVAL_MS)
     return () => clearTimeout(timer)
   }, [room, me?.is_caller])
+
+  const playChime = useCallback(() => {
+    if (!soundOn) return
+    const Ctx = window.AudioContext || window.webkitAudioContext
+    if (!Ctx) return
+    if (!audioCtxRef.current) audioCtxRef.current = new Ctx()
+    const ctx = audioCtxRef.current
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {})
+
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = 'sine'
+    osc.frequency.value = 880
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.02)
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start()
+    osc.stop(ctx.currentTime + 0.4)
+  }, [soundOn])
+
+  // Plays a short chime whenever a new card gets called, so players don't
+  // have to keep their eyes glued to the caller strip. Skips the very first
+  // sync after loading/reconnecting so it doesn't fire for cards that were
+  // already called before this player joined the effect's watch.
+  useEffect(() => {
+    if (!room) return
+    if (prevDrawIndexRef.current === null) {
+      prevDrawIndexRef.current = room.draw_index
+      return
+    }
+    if (room.draw_index !== prevDrawIndexRef.current) {
+      prevDrawIndexRef.current = room.draw_index
+      playChime()
+    }
+  }, [room, playChime])
+
+  function toggleSound() {
+    setSoundOn((prev) => {
+      const next = !prev
+      localStorage.setItem('chalupa:sound', next ? 'on' : 'off')
+      // Unlock the AudioContext from this click (a real user gesture) so
+      // later programmatic chimes aren't blocked by autoplay policy.
+      const Ctx = window.AudioContext || window.webkitAudioContext
+      if (next && Ctx) {
+        if (!audioCtxRef.current) audioCtxRef.current = new Ctx()
+        audioCtxRef.current.resume().catch(() => {})
+      }
+      return next
+    })
+  }
 
   if (!playerId) return null
   if (loadError) return <p className="error">{loadError}</p>
@@ -205,8 +260,20 @@ export default function Room() {
   return (
     <div className="room">
       <header className="room-header">
-        <h1>Room {roomId}</h1>
+        <div className="header-left">
+          <button className="back-btn" onClick={() => navigate('/')}>
+            ← Menu
+          </button>
+          <h1>Room {roomId}</h1>
+        </div>
         <div className="header-right">
+          <button
+            className="sound-toggle-btn"
+            onClick={toggleSound}
+            title={soundOn ? 'Mute card-call sound' : 'Unmute card-call sound'}
+          >
+            {soundOn ? '🔔' : '🔕'}
+          </button>
           <span className={`sync-badge ${justSynced ? 'pulse' : ''}`}>🟢 Live</span>
           <p>{players.length} player{players.length === 1 ? '' : 's'}</p>
         </div>
