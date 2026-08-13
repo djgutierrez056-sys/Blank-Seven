@@ -10,6 +10,8 @@ import {
   claimChalupa,
   pruneUnverifiedMarks,
   startNewRound,
+  fetchMessages,
+  sendMessage,
   subscribeToRoom,
 } from './roomApi'
 
@@ -23,6 +25,8 @@ export default function Room() {
 
   const [room, setRoom] = useState(null)
   const [players, setPlayers] = useState([])
+  const [messages, setMessages] = useState([])
+  const [chatInput, setChatInput] = useState('')
   const [loadError, setLoadError] = useState('')
   const [actionError, setActionError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -39,8 +43,15 @@ export default function Room() {
     let cancelled = false
     ;(async () => {
       try {
-        const [r] = await Promise.all([fetchRoom(roomId), reloadPlayers()])
-        if (!cancelled) setRoom(r)
+        const [r, , msgs] = await Promise.all([
+          fetchRoom(roomId),
+          reloadPlayers(),
+          fetchMessages(roomId),
+        ])
+        if (!cancelled) {
+          setRoom(r)
+          setMessages(msgs)
+        }
       } catch (err) {
         if (!cancelled) setLoadError(err.message)
       }
@@ -49,7 +60,8 @@ export default function Room() {
     const unsubscribe = subscribeToRoom(
       roomId,
       (updatedRoom) => setRoom(updatedRoom),
-      () => reloadPlayers()
+      () => reloadPlayers(),
+      (newMessage) => setMessages((prev) => [...prev, newMessage])
     )
     return () => {
       cancelled = true
@@ -149,6 +161,18 @@ export default function Room() {
     }
   }
 
+  async function handleSendMessage(e) {
+    e.preventDefault()
+    if (!me || !chatInput.trim()) return
+    const text = chatInput
+    setChatInput('')
+    try {
+      await sendMessage(roomId, me.name, text)
+    } catch (err) {
+      setActionError(err.message)
+    }
+  }
+
   const canClaim =
     room.status !== 'finished' && me && me.tabla.every((id) => me.marked.includes(id))
 
@@ -241,6 +265,29 @@ export default function Room() {
           ))}
         </ul>
       </section>
+
+      {me && (
+        <section className="chat">
+          <h2>Chat</h2>
+          <div className="chat-messages">
+            {messages.length === 0 && <p className="hint">No messages yet.</p>}
+            {messages.map((m) => (
+              <p key={m.id} className="chat-message">
+                <strong>{m.player_name}:</strong> {m.body}
+              </p>
+            ))}
+          </div>
+          <form className="chat-form" onSubmit={handleSendMessage}>
+            <input
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Say something..."
+              maxLength={300}
+            />
+            <button type="submit" disabled={!chatInput.trim()}>Send</button>
+          </form>
+        </section>
+      )}
 
       {actionError && <p className="error">{actionError}</p>}
     </div>

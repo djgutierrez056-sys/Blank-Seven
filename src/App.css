@@ -152,3 +152,27 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .players-list { margin-top: 24px; }
 .players-list ul { list-style: none; padding: 0; }
 .players-list li { padding: 4px 0; }
+
+.chat {
+  margin-top: 24px;
+  background: var(--paper);
+  border: 2px solid #d9b98a;
+  border-radius: 10px;
+  padding: 14px;
+}
+.chat h2 { font-size: 1rem; margin: 0 0 8px; }
+
+.chat-messages {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+  text-align: left;
+}
+.chat-message { margin: 0; font-size: 0.9rem; }
+.chat .hint { color: #7a5c3e; margin: 0; }
+
+.chat-form { display: flex; gap: 8px; }
+.chat-form input { flex: 1; }

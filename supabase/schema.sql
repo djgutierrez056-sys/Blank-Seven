@@ -23,8 +23,17 @@ create table if not exists players (
   joined_at timestamptz not null default now()
 );
 
+create table if not exists messages (
+  id uuid primary key default gen_random_uuid(),
+  room_id text not null references rooms(id) on delete cascade,
+  player_name text not null,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
 alter table rooms enable row level security;
 alter table players enable row level security;
+alter table messages enable row level security;
 
 -- Casual party game: no accounts, anyone with the room code can read/write.
 -- Not suitable for anything sensitive, but fine for a living-room game.
@@ -36,6 +45,10 @@ create policy "players readable by anyone" on players for select using (true);
 create policy "players insertable by anyone" on players for insert with check (true);
 create policy "players updatable by anyone" on players for update using (true);
 
--- Enable realtime on both tables
+create policy "messages readable by anyone" on messages for select using (true);
+create policy "messages insertable by anyone" on messages for insert with check (true);
+
+-- Enable realtime on all three tables
 alter publication supabase_realtime add table rooms;
 alter publication supabase_realtime add table players;
+alter publication supabase_realtime add table messages;

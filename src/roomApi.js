@@ -182,7 +182,29 @@ export async function startNewRound(room, players) {
   return { room: nextRoom, players: updatedPlayers }
 }
 
-export function subscribeToRoom(roomId, onRoomChange, onPlayersChange) {
+export async function fetchMessages(roomId) {
+  const { data, error } = await supabase
+    .from('messages')
+    .select()
+    .eq('room_id', roomId)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return data
+}
+
+export async function sendMessage(roomId, playerName, body) {
+  const trimmed = body.trim()
+  if (!trimmed) return null
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({ room_id: roomId, player_name: playerName, body: trimmed.slice(0, 300) })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export function subscribeToRoom(roomId, onRoomChange, onPlayersChange, onNewMessage) {
   const channel = supabase
     .channel(`room-${roomId}`)
     .on(
@@ -194,6 +216,11 @@ export function subscribeToRoom(roomId, onRoomChange, onPlayersChange) {
       'postgres_changes',
       { event: '*', schema: 'public', table: 'players', filter: `room_id=eq.${roomId}` },
       onPlayersChange
+    )
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${roomId}` },
+      (payload) => onNewMessage?.(payload.new)
     )
     .subscribe()
 
