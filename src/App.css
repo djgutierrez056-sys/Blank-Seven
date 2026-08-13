@@ -211,9 +211,17 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   padding: 10px;
 }
 .voice-chat h2 { font-size: 0.85rem; margin: 0 0 6px; }
-.voice-chat button { font-size: 0.85rem; padding: 6px 10px; }
-.voice-frame { margin-top: 8px; border-radius: 8px; overflow: hidden; }
-.voice-frame:not(.active) { display: none; }
+.voice-link {
+  display: inline-block;
+  font-size: 0.85rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  border: 2px solid var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
 
 .chat, .history {
   background: var(--paper);
