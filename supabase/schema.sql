@@ -10,7 +10,8 @@ create table if not exists rooms (
   draw_index int not null default 0,       -- how many cards from `deck` have been called
   paused boolean not null default false,   -- caller-triggered break; halts auto-calling
   winner_player_id uuid,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  last_active_at timestamptz not null default now() -- bumped by triggers below; drives 24h expiry
 );
 
 create table if not exists players (
@@ -53,3 +54,49 @@ create policy "messages insertable by anyone" on messages for insert with check 
 alter publication supabase_realtime add table rooms;
 alter publication supabase_realtime add table players;
 alter publication supabase_realtime add table messages;
+
+-- Room expiry: a room whose last activity (a draw, a mark, a chat message,
+-- a player joining, etc.) is more than 24h old gets deleted automatically.
+-- Players/messages cascade-delete with it via their existing foreign keys.
+-- Safe to re-run: covers projects created before this column existed too.
+alter table rooms add column if not exists last_active_at timestamptz not null default now();
+
+create or replace function touch_room_last_active()
+returns trigger as $$
+begin
+  if tg_table_name = 'rooms' then
+    new.last_active_at := now();
+    return new;
+  end if;
+
+  update rooms set last_active_at = now() where id = new.room_id;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists rooms_touch_last_active on rooms;
+create trigger rooms_touch_last_active
+  before update on rooms
+  for each row execute function touch_room_last_active();
+
+drop trigger if exists players_touch_room on players;
+create trigger players_touch_room
+  after insert or update on players
+  for each row execute function touch_room_last_active();
+
+drop trigger if exists messages_touch_room on messages;
+create trigger messages_touch_room
+  after insert on messages
+  for each row execute function touch_room_last_active();
+
+-- Hourly cleanup job. Requires the pg_cron extension — enable it once via
+-- the Supabase dashboard (Database -> Extensions -> pg_cron) before running
+-- this, or the CREATE EXTENSION line below may need dashboard access too
+-- depending on your project's permissions.
+create extension if not exists pg_cron;
+
+select cron.schedule(
+  'chalupa-room-expiry',
+  '0 * * * *', -- every hour, on the hour
+  $$ delete from rooms where last_active_at < now() - interval '24 hours' $$
+);

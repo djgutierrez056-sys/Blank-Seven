@@ -16,9 +16,13 @@ board shouts **¡Chalupa!** to win.
 
 1. Go to [supabase.com](https://supabase.com) and create a free project.
 2. In the SQL editor, run the contents of [`supabase/schema.sql`](supabase/schema.sql).
-   This creates the `rooms` and `players` tables, permissive policies (no
-   login required — anyone with a room code can play), and enables Realtime
-   on both tables.
+   This creates the `rooms`, `players` and `messages` tables, permissive
+   policies (no login required — anyone with a room code can play), enables
+   Realtime on all three, and sets up automatic room expiry (see below). On
+   a **new** project, run the whole file top to bottom. On a project that
+   already has these tables (e.g. adding room expiry later), only run the
+   final block under `-- Room expiry` — re-running the table/policy
+   statements above it will error since those aren't idempotent.
 3. In **Project Settings → API**, copy your **Project URL** and **anon public key**.
 
 ## 2. Configure the app
@@ -57,6 +61,24 @@ become the caller) or **join a room** with the code someone shares with you.
   any marks that weren't actually called get cleared automatically.
 - After a round ends, the caller can hit **Play again** to reshuffle and deal
   fresh boards without leaving the room.
+
+## Room expiry
+
+Rooms are deleted automatically after **24 hours of no activity** — no
+manual cleanup needed. Every `rooms` row has a `last_active_at` column that
+database triggers bump whenever anything happens in that room (a card is
+called, a board is marked, someone joins, a chat message is sent). A
+`pg_cron` job checks hourly and deletes any room whose `last_active_at` is
+more than 24h old; `players` and `messages` rows for that room cascade-delete
+along with it via their existing foreign keys.
+
+This needs the **pg_cron** extension enabled once: in your Supabase
+dashboard, go to **Database → Extensions**, search for `pg_cron`, and
+enable it (or just run `create extension if not exists pg_cron;`, which is
+already included at the top of the room-expiry block in `schema.sql`). You
+can check scheduled jobs anytime with `select * from cron.job;` in the SQL
+editor, and see run history with `select * from cron.job_run_details order
+by start_time desc limit 20;`.
 
 ## Voice chat
 

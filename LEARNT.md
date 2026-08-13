@@ -36,7 +36,7 @@ Daily.co's free tier (10,000 participant-minutes/month) required a payment metho
 
 ## Supabase CLI needs `--token` in non-interactive environments
 
-`supabase login`'s normal flow opens a browser for OAuth, which fails in a non-TTY shell (`Cannot use automatic login flow inside non-TTY environments`). The workaround is generating a personal access token from the Supabase dashboard and passing `--token <token>` directly. Note: that token can manage *all* of the account's projects, not just one — worth revoking after one-off setup tasks.
+`supabase login`'s normal flow opens a browser for OAuth, which fails in a non-TTY shell (`Cannot use automatic login flow inside non-TTY environments`). The workaround is generating a personal access token from the Supabase dashboard. Note: on CLI v2.114.0, `supabase functions deploy --token <token>` was rejected as an unrecognized flag — the working form is setting the `SUPABASE_ACCESS_TOKEN` environment variable instead (`SUPABASE_ACCESS_TOKEN=<token> supabase functions deploy ...`). That token can manage *all* of the account's projects, not just one — worth revoking after one-off setup tasks.
 
 ## GitHub Pages needs both a base path and hash routing
 
@@ -45,3 +45,7 @@ A Vite React SPA deployed to a GitHub Pages *project* site (not a custom domain)
 ## Public-domain art still has a trademark angle
 
 The 1913 Don Clemente Lotería card illustrations are old enough to be copyright-public-domain in the US, but "Don Clemente" is still an active, trademarked commercial product line. Scraping/reproducing their exact card scans for a public site sits in a gray area even though the underlying images are copyright-free. Went with OpenMoji (CC BY-SA 4.0, unrelated to the Lotería brand) instead — same visual upgrade over plain emoji, no trademark question.
+
+## Room expiry belongs in the database, not the client
+
+Rooms live forever by default since nothing ever deletes a `rooms` row — no TTL, no cleanup. There's no long-running server process to worry about here (Supabase Realtime and LiveKit don't cost anything for an idle/empty room), but the Postgres rows themselves accumulate indefinitely. Handled it entirely server-side: a `last_active_at` column on `rooms`, kept fresh by triggers that fire on any `rooms` update or any `players`/`messages` insert/update for that room (so calling a card, marking a board, joining, and chatting all count as activity), plus an hourly `pg_cron` job that deletes rooms whose `last_active_at` is over 24h old. Doing it via triggers instead of updating `last_active_at` from the client on every action means it can't drift out of sync with whatever mutations get added later — any new write to `rooms`/`players`/`messages` is automatically "activity" with no extra code. `pg_cron` needs enabling once via **Database → Extensions** in the Supabase dashboard.
