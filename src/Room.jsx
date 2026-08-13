@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { CARDS } from './cards'
+import VoiceChat from './VoiceChat'
 import {
   fetchRoom,
   fetchPlayers,
@@ -322,6 +323,8 @@ export default function Room() {
         </div>
 
         {me && (
+          <div className="right-sidebar">
+          <VoiceChat roomId={roomId} playerName={me.name} />
           <aside className="chat">
             <h2>Chat</h2>
             <div className="chat-messages">
@@ -342,6 +345,7 @@ export default function Room() {
               <button type="submit" disabled={!chatInput.trim()}>Send</button>
             </form>
           </aside>
+          </div>
         )}
       </div>
     </div>

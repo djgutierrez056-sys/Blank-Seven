@@ -58,6 +58,15 @@ become the caller) or **join a room** with the code someone shares with you.
 - After a round ends, the caller can hit **Play again** to reshuffle and deal
   fresh boards without leaving the room.
 
+## Voice chat
+
+Each room has an optional **Join voice** button that opens an audio-only
+[Jitsi Meet](https://meet.jit.si) session scoped to that room. It's a public,
+free third-party service — no signaling server or TURN infrastructure to
+run ourselves — but that also means voice calls happen on Jitsi's public
+`meet.jit.si` servers, not something we control. Fine for a casual game;
+don't rely on it for anything sensitive.
+
 ## Deploying to GitHub Pages
 
 This repo includes a GitHub Actions workflow
