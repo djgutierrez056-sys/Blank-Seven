@@ -168,6 +168,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   flex-direction: column;
   gap: 16px;
   max-height: calc(100vh - 32px);
+  overflow: hidden;
 }
 
 .leaderboard, .players-list, .history {
@@ -177,13 +178,16 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   padding: 14px;
 }
 .leaderboard h2, .players-list h2, .history h2 { font-size: 1rem; margin: 0 0 8px; }
+.leaderboard, .players-list { flex-shrink: 0; }
 
 .history {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 0;
+  min-height: 120px;
+  overflow: hidden;
 }
+.history h2 { flex-shrink: 0; }
 
 .chat {
   background: var(--paper);
@@ -195,12 +199,13 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 32px);
+  overflow: hidden;
 }
-.chat h2 { font-size: 1rem; margin: 0 0 8px; }
+.chat h2 { font-size: 1rem; margin: 0 0 8px; flex-shrink: 0; }
 
 .chat-messages, .history-list {
   flex: 1;
-  min-height: 100px;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -216,6 +221,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 @media (max-width: 980px) {
   .room-body { grid-template-columns: 1fr; }
-  .left-sidebar, .chat { position: static; max-height: none; }
-  .chat-messages, .history-list { max-height: 220px; }
+  .left-sidebar, .chat { position: static; max-height: none; overflow: visible; }
+  .history { overflow: visible; }
+  .chat-messages, .history-list { max-height: 220px; flex: none; }
 }
