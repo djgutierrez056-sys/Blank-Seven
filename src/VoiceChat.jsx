@@ -1,36 +1,22 @@
-import { useState } from 'react'
-
-// Plain declarative iframe, scoped to a room-specific Jitsi room name.
-// The `allow="microphone"` attribute is what actually matters here — the
-// browser's Permissions Policy blocks a cross-origin iframe from using the
-// mic unless the parent page explicitly delegates it, which is what caused
-// the earlier script-driven embed to get stuck on a dark screen.
+// meet.jit.si actively restricts its iframe/JS embed API for third-party
+// domains (anti-abuse policy) — embedded calls get stuck on a dark screen
+// with just the logo and never actually connect, so no audio flows between
+// participants even though the frame "loads" (see LEARNT.md). Opening the
+// room directly in its own tab isn't subject to that restriction and
+// reliably connects.
 export default function VoiceChat({ roomId, playerName }) {
-  const [joined, setJoined] = useState(false)
   const roomName = `chalupa-voice-${roomId}`
   const url =
     `https://meet.jit.si/${roomName}` +
-    `#config.startAudioOnly=true&config.prejoinPageEnabled=false` +
+    `#config.startAudioOnly=true` +
     `&userInfo.displayName=${encodeURIComponent(playerName)}`
 
   return (
     <div className="voice-chat">
       <h2>Voice chat</h2>
-      {!joined && (
-        <button onClick={() => setJoined(true)}>🎙️ Join voice</button>
-      )}
-      {joined && (
-        <>
-          <button onClick={() => setJoined(false)}>Leave voice</button>
-          <iframe
-            key={roomName}
-            className="voice-frame"
-            src={url}
-            allow="camera; microphone; fullscreen; display-capture; autoplay"
-            title="Voice chat"
-          />
-        </>
-      )}
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        <button>🎙️ Join voice (opens in new tab)</button>
+      </a>
     </div>
   )
 }

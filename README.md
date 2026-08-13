@@ -61,18 +61,28 @@ become the caller) or **join a room** with the code someone shares with you.
 ## Voice chat
 
 Each room has an optional **Join voice** button that opens an audio-only
-[Jitsi Meet](https://meet.jit.si) session scoped to that room, embedded
-inline via a plain `<iframe allow="microphone">`. It's a free, public
-third-party service — no signup, no API key, no payment method required —
-but that also means calls run on Jitsi's shared public infrastructure
-rather than something we control. Fine for a casual game.
+[Jitsi Meet](https://meet.jit.si) session for that room **in a new browser
+tab**, rather than embedded inline. It's a free, public third-party
+service — no signup, no API key, no payment method required.
 
-(An earlier version of this used Daily.co with a Supabase Edge Function
-for proper per-room isolation and a nicer embed, but Daily now requires a
-payment method on file even for its free tier, so we backed out to Jitsi.
-The Edge Function code is still in `supabase/functions/create-voice-room`
-if you want to revisit that path later — you'd just need to redeploy
-`VoiceChat.jsx` to call it again and add a card to your Daily account.)
+It opens in a new tab rather than embedding because `meet.jit.si` actively
+restricts iframe embedding from third-party domains (anti-abuse policy) —
+an embedded call gets stuck on a dark screen with just the logo and never
+actually connects, so no audio flows even though the frame "loads" (see
+`LEARNT.md`). Opening the room directly isn't subject to that restriction
+and reliably connects. The tradeoff is players have to switch tabs to talk
+instead of it living in the game UI.
+
+(There's a path back to an inline embed via **JaaS**, Jitsi's own hosted
+embedding product, which authenticates embeds with a signed JWT and isn't
+subject to the anti-abuse restriction — but it requires a JaaS account and
+a Supabase Edge Function to mint tokens server-side, more setup than the
+new-tab approach. An earlier version also used Daily.co with a Supabase
+Edge Function for per-room isolation, but Daily now requires a payment
+method on file even for its free tier, so that was dropped too. The Edge
+Function code is still in `supabase/functions/create-voice-room` if you
+want to revisit that path — you'd need to redeploy `VoiceChat.jsx` to call
+it again and add a card to your Daily account.)
 
 ## Deploying to GitHub Pages
 
