@@ -71,6 +71,22 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .room-header { display: flex; justify-content: space-between; align-items: baseline; }
 
+.header-right { display: flex; align-items: center; gap: 12px; }
+
+.sync-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #4c7a52;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 2px 10px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.sync-badge.pulse {
+  background: #d7f0da;
+  border-color: var(--accent-2);
+}
+
 .winner-banner {
   background: gold;
   border: 3px solid var(--accent);

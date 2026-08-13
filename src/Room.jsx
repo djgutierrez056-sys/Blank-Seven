@@ -30,10 +30,16 @@ export default function Room() {
   const [loadError, setLoadError] = useState('')
   const [actionError, setActionError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [justSynced, setJustSynced] = useState(false)
 
   const reloadPlayers = useCallback(async () => {
     setPlayers(await fetchPlayers(roomId))
   }, [roomId])
+
+  const pulseSync = useCallback(() => {
+    setJustSynced(true)
+    setTimeout(() => setJustSynced(false), 1000)
+  }, [])
 
   useEffect(() => {
     if (!playerId) {
@@ -59,15 +65,24 @@ export default function Room() {
 
     const unsubscribe = subscribeToRoom(
       roomId,
-      (updatedRoom) => setRoom(updatedRoom),
-      () => reloadPlayers(),
-      (newMessage) => setMessages((prev) => [...prev, newMessage])
+      (updatedRoom) => {
+        setRoom(updatedRoom)
+        pulseSync()
+      },
+      () => {
+        reloadPlayers()
+        pulseSync()
+      },
+      (newMessage) => {
+        setMessages((prev) => [...prev, newMessage])
+        pulseSync()
+      }
     )
     return () => {
       cancelled = true
       unsubscribe()
     }
-  }, [roomId, playerId, navigate, reloadPlayers])
+  }, [roomId, playerId, navigate, reloadPlayers, pulseSync])
 
   const me = players.find((p) => p.id === playerId)
 
@@ -183,7 +198,10 @@ export default function Room() {
     <div className="room">
       <header className="room-header">
         <h1>Room {roomId}</h1>
-        <p>{players.length} player{players.length === 1 ? '' : 's'}</p>
+        <div className="header-right">
+          <span className={`sync-badge ${justSynced ? 'pulse' : ''}`}>🟢 Live</span>
+          <p>{players.length} player{players.length === 1 ? '' : 's'}</p>
+        </div>
       </header>
 
       <div className="room-body">
