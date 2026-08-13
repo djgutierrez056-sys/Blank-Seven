@@ -127,7 +127,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 .current-card { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; }
-.current-card .art { font-size: 2rem; }
+.current-card .art { width: 2.2rem; height: 2.2rem; }
 
 .board-section { display: flex; flex-direction: column; align-items: center; gap: 16px; }
 
@@ -153,7 +153,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   padding: 4px;
   text-align: center;
 }
-.cell .art { font-size: 1.6rem; }
+.cell .art { width: 2rem; height: 2rem; }
 .cell .name { font-size: 0.65rem; font-weight: 700; }
 .cell.marked {
   background: var(--accent-2);
@@ -247,6 +247,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .chat-message { margin: 0; font-size: 0.78rem; line-height: 1.3; }
 .history-item { margin: 0; font-size: 0.9rem; }
+.history-item .art { width: 1.1rem; height: 1.1rem; vertical-align: -3px; }
 .chat .hint, .history .hint { color: #7a5c3e; margin: 0; font-size: 0.78rem; }
 
 .chat-form { display: flex; gap: 6px; }

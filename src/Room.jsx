@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { CARDS } from './cards'
+import { CARDS, openmojiUrl } from './cards'
 import VoiceChat from './VoiceChat'
 import {
   fetchRoom,
@@ -257,7 +257,7 @@ export default function Room() {
           <section className="caller-strip">
             {currentCard ? (
               <div className="current-card">
-                <span className="art">{currentCard.art}</span>
+                <img className="art" src={openmojiUrl(currentCard.openmoji)} alt="" />
                 <span>{currentCard.es} <em>({currentCard.en})</em></span>
               </div>
             ) : (
@@ -294,7 +294,7 @@ export default function Room() {
                       onClick={() => handleToggle(cardId)}
                       title={card.es}
                     >
-                      <span className="art">{card.art}</span>
+                      <img className="art" src={openmojiUrl(card.openmoji)} alt="" />
                       <span className="name">{card.es}</span>
                     </button>
                   )
@@ -346,7 +346,7 @@ export default function Room() {
                 const card = cardById.get(cardId)
                 return (
                   <p key={cardId} className="history-item">
-                    <span className="art">{card.art}</span> {card.es}
+                    <img className="art" src={openmojiUrl(card.openmoji)} alt="" /> {card.es}
                   </p>
                 )
               })}

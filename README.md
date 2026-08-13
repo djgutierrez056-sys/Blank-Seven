@@ -96,8 +96,12 @@ rewriting.
 
 ## Notes / next steps
 
-- Card art is emoji placeholders in [`src/cards.js`](src/cards.js) — swap in
-  real illustrations whenever you want.
+- Card illustrations are [OpenMoji](https://openmoji.org) (CC BY-SA 4.0),
+  mapped per card in [`src/cards.js`](src/cards.js) and loaded from
+  jsdelivr's CDN. Attribution: "Icons by OpenMoji — the open-source emoji
+  and icon project. License: CC BY-SA 4.0". The classic Don Clemente
+  Lotería card art wasn't used here — see the git history/PR discussion
+  around this feature for the trademark reasoning.
 - The Supabase policies are intentionally open (no auth) to keep joining a
   room frictionless for a casual party game. Don't reuse this schema for
   anything that needs real access control.
