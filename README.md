@@ -50,6 +50,9 @@ become the caller) or **join a room** with the code someone shares with you.
 
 ## How a round works
 
+- Before the caller starts, any player who doesn't like their dealt board can
+  hit **🔀 Change my board** for a fresh random tabla. The button disappears
+  once a card has been called.
 - The caller clicks **Start calling**, then cards call themselves
   automatically every 4 seconds from a shuffled 54-card deck.
 - Players tap cards directly on their own board to mark them — nothing on
@@ -61,6 +64,8 @@ become the caller) or **join a room** with the code someone shares with you.
   any marks that weren't actually called get cleared automatically.
 - After a round ends, the caller can hit **Play again** to reshuffle and deal
   fresh boards without leaving the room.
+- **← Menu** in the top-left of the room header returns to the home screen
+  at any time.
 
 ## Card-call narrator
 
@@ -184,8 +189,11 @@ rewriting.
   mapped per card in [`src/cards.js`](src/cards.js) and loaded from
   jsdelivr's CDN. Attribution: "Icons by OpenMoji — the open-source emoji
   and icon project. License: CC BY-SA 4.0". The classic Don Clemente
-  Lotería card art wasn't used here — see the git history/PR discussion
-  around this feature for the trademark reasoning.
+  Lotería card art wasn't used here — its rights holders have a documented
+  history of cease-and-desist letters over reuse of the card designs, even
+  though the underlying 1913 illustrations are themselves copyright-expired
+  (see `LEARNT.md` for the full trademark-vs-copyright reasoning, and notes
+  on two other art sourcing attempts that didn't pan out either).
 - The Supabase policies are intentionally open (no auth) to keep joining a
   room frictionless for a casual party game. Don't reuse this schema for
   anything that needs real access control.
