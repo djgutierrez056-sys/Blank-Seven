@@ -183,113 +183,132 @@ export default function Room() {
         <p>{players.length} player{players.length === 1 ? '' : 's'}</p>
       </header>
 
-      {winner && (
-        <div className="winner-banner">
-          🏆 {winner.name} shouted <strong>¡Chalupa!</strong> and won!
-          {me?.is_caller && (
-            <button className="new-round-btn" disabled={busy} onClick={handleNewRound}>
-              Play again
-            </button>
-          )}
-        </div>
-      )}
-
-      {room.paused && room.status === 'playing' && (
-        <div className="paused-banner">⏸️ Game paused{me?.is_caller ? '' : ' by the caller'}</div>
-      )}
-
-      <section className="caller-strip">
-        {currentCard ? (
-          <div className="current-card">
-            <span className="art">{currentCard.art}</span>
-            <span>{currentCard.es} <em>({currentCard.en})</em></span>
-          </div>
-        ) : (
-          <div className="current-card">No card called yet</div>
-        )}
-        {me?.is_caller && room.status === 'waiting' && (
-          <button disabled={busy} onClick={handleStart}>
-            Start calling
-          </button>
-        )}
-        {me?.is_caller && room.status === 'playing' && !deckExhausted && (
-          <>
-            {!room.paused && (
-              <span className="auto-note">Cards call automatically every {DRAW_INTERVAL_MS / 1000}s</span>
-            )}
-            <button disabled={busy} onClick={handleTogglePause}>
-              {room.paused ? 'Resume' : 'Pause'}
-            </button>
-          </>
-        )}
-        {deckExhausted && room.status !== 'finished' && <span className="auto-note">Deck empty</span>}
-      </section>
-
-      {me && (
-        <section className="board-section">
-          <div className="board">
-            {me.tabla.map((cardId) => {
+      <div className="room-body">
+        <aside className="history">
+          <h2>Called cards</h2>
+          <div className="history-list">
+            {calledOrder.length === 0 && <p className="hint">None yet.</p>}
+            {[...calledOrder].reverse().map((cardId) => {
               const card = cardById.get(cardId)
-              const marked = me.marked.includes(cardId)
               return (
-                <button
-                  key={cardId}
-                  className={`cell ${marked ? 'marked' : ''}`}
-                  onClick={() => handleToggle(cardId)}
-                  title={card.es}
-                >
-                  <span className="art">{card.art}</span>
-                  <span className="name">{card.es}</span>
-                </button>
+                <p key={cardId} className="history-item">
+                  <span className="art">{card.art}</span> {card.es}
+                </p>
               )
             })}
           </div>
+        </aside>
 
-          <button
-            className="chalupa-btn"
-            disabled={!canClaim || busy}
-            onClick={handleClaim}
-          >
-            ¡Chalupa!
-          </button>
-        </section>
-      )}
+        <div className="room-main">
+          {winner && (
+            <div className="winner-banner">
+              🏆 {winner.name} shouted <strong>¡Chalupa!</strong> and won!
+              {me?.is_caller && (
+                <button className="new-round-btn" disabled={busy} onClick={handleNewRound}>
+                  Play again
+                </button>
+              )}
+            </div>
+          )}
 
-      <section className="players-list">
-        <h2>Players</h2>
-        <ul>
-          {players.map((p) => (
-            <li key={p.id}>
-              {p.name} {p.is_caller && '📣'} — {p.marked.length}/16
-            </li>
-          ))}
-        </ul>
-      </section>
+          {room.paused && room.status === 'playing' && (
+            <div className="paused-banner">⏸️ Game paused{me?.is_caller ? '' : ' by the caller'}</div>
+          )}
 
-      {me && (
-        <section className="chat">
-          <h2>Chat</h2>
-          <div className="chat-messages">
-            {messages.length === 0 && <p className="hint">No messages yet.</p>}
-            {messages.map((m) => (
-              <p key={m.id} className="chat-message">
-                <strong>{m.player_name}:</strong> {m.body}
-              </p>
-            ))}
-          </div>
-          <form className="chat-form" onSubmit={handleSendMessage}>
-            <input
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Say something..."
-              maxLength={300}
-            />
-            <button type="submit" disabled={!chatInput.trim()}>Send</button>
-          </form>
-        </section>
-      )}
+          <section className="caller-strip">
+            {currentCard ? (
+              <div className="current-card">
+                <span className="art">{currentCard.art}</span>
+                <span>{currentCard.es} <em>({currentCard.en})</em></span>
+              </div>
+            ) : (
+              <div className="current-card">No card called yet</div>
+            )}
+            {me?.is_caller && room.status === 'waiting' && (
+              <button disabled={busy} onClick={handleStart}>
+                Start calling
+              </button>
+            )}
+            {me?.is_caller && room.status === 'playing' && !deckExhausted && (
+              <>
+                {!room.paused && (
+                  <span className="auto-note">Cards call automatically every {DRAW_INTERVAL_MS / 1000}s</span>
+                )}
+                <button disabled={busy} onClick={handleTogglePause}>
+                  {room.paused ? 'Resume' : 'Pause'}
+                </button>
+              </>
+            )}
+            {deckExhausted && room.status !== 'finished' && <span className="auto-note">Deck empty</span>}
+          </section>
 
-      {actionError && <p className="error">{actionError}</p>}
+          {me && (
+            <section className="board-section">
+              <div className="board">
+                {me.tabla.map((cardId) => {
+                  const card = cardById.get(cardId)
+                  const marked = me.marked.includes(cardId)
+                  return (
+                    <button
+                      key={cardId}
+                      className={`cell ${marked ? 'marked' : ''}`}
+                      onClick={() => handleToggle(cardId)}
+                      title={card.es}
+                    >
+                      <span className="art">{card.art}</span>
+                      <span className="name">{card.es}</span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <button
+                className="chalupa-btn"
+                disabled={!canClaim || busy}
+                onClick={handleClaim}
+              >
+                ¡Chalupa!
+              </button>
+            </section>
+          )}
+
+          <section className="players-list">
+            <h2>Players</h2>
+            <ul>
+              {players.map((p) => (
+                <li key={p.id}>
+                  {p.name} {p.is_caller && '📣'} — {p.marked.length}/16
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {actionError && <p className="error">{actionError}</p>}
+        </div>
+
+        {me && (
+          <aside className="chat">
+            <h2>Chat</h2>
+            <div className="chat-messages">
+              {messages.length === 0 && <p className="hint">No messages yet.</p>}
+              {messages.map((m) => (
+                <p key={m.id} className="chat-message">
+                  <strong>{m.player_name}:</strong> {m.body}
+                </p>
+              ))}
+            </div>
+            <form className="chat-form" onSubmit={handleSendMessage}>
+              <input
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Say something..."
+                maxLength={300}
+              />
+              <button type="submit" disabled={!chatInput.trim()}>Send</button>
+            </form>
+          </aside>
+        )}
+      </div>
     </div>
   )
 }

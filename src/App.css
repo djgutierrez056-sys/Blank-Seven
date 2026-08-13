@@ -16,7 +16,7 @@ body {
   min-height: 100vh;
 }
 
-#root { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+#root { max-width: 1300px; margin: 0 auto; padding: 24px 16px 64px; }
 
 h1 { font-size: 2.2rem; margin-bottom: 0; }
 .subtitle { color: #7a5c3e; margin-top: 4px; }
@@ -153,17 +153,31 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .players-list ul { list-style: none; padding: 0; }
 .players-list li { padding: 4px 0; }
 
-.chat {
-  margin-top: 24px;
+.room-body {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 300px;
+  gap: 24px;
+  align-items: start;
+}
+
+.room-main { min-width: 0; }
+
+.chat, .history {
   background: var(--paper);
   border: 2px solid #d9b98a;
   border-radius: 10px;
   padding: 14px;
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 32px);
 }
-.chat h2 { font-size: 1rem; margin: 0 0 8px; }
+.chat h2, .history h2 { font-size: 1rem; margin: 0 0 8px; }
 
-.chat-messages {
-  max-height: 220px;
+.chat-messages, .history-list {
+  flex: 1;
+  min-height: 120px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -171,8 +185,14 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   margin-bottom: 10px;
   text-align: left;
 }
-.chat-message { margin: 0; font-size: 0.9rem; }
-.chat .hint { color: #7a5c3e; margin: 0; }
+.chat-message, .history-item { margin: 0; font-size: 0.9rem; }
+.chat .hint, .history .hint { color: #7a5c3e; margin: 0; }
 
 .chat-form { display: flex; gap: 8px; }
-.chat-form input { flex: 1; }
+.chat-form input { flex: 1; min-width: 0; }
+
+@media (max-width: 980px) {
+  .room-body { grid-template-columns: 1fr; }
+  .chat, .history { position: static; max-height: none; }
+  .chat-messages, .history-list { max-height: 220px; }
+}
