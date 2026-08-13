@@ -45,7 +45,16 @@ export default function Room() {
   useEffect(() => {
     const synth = window.speechSynthesis
     if (!synth) return
-    const loadVoices = () => setVoices(synth.getVoices())
+    const loadVoices = () => {
+      const list = synth.getVoices()
+      setVoices(list)
+      // Default to "Google español" the first time voices load, if the
+      // player hasn't already picked something (no saved preference yet).
+      if (localStorage.getItem('chalupa:voiceURI') === null) {
+        const googleEs = list.find((v) => v.name.includes('Google') && v.lang === 'es-ES')
+        if (googleEs) setVoiceURI(googleEs.voiceURI)
+      }
+    }
     loadVoices()
     synth.addEventListener('voiceschanged', loadVoices)
     return () => synth.removeEventListener('voiceschanged', loadVoices)
