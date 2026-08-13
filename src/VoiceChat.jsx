@@ -11,7 +11,7 @@ export default function VoiceChat({ roomId, playerName }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [muted, setMuted] = useState(false)
-  const [remoteCount, setRemoteCount] = useState(0)
+  const [participants, setParticipants] = useState([]) // [{ identity, name }]
   const roomRef = useRef(null)
   const audioContainerRef = useRef(null)
 
@@ -35,26 +35,32 @@ export default function VoiceChat({ roomId, playerName }) {
     }
 
     const room = new Room()
+    const asEntry = (p) => ({ identity: p.identity, name: p.name || p.identity })
 
     room.on(RoomEvent.TrackSubscribed, (track) => {
       if (track.kind !== Track.Kind.Audio) return
       const el = track.attach()
       audioContainerRef.current?.appendChild(el)
-      setRemoteCount((n) => n + 1)
     })
     room.on(RoomEvent.TrackUnsubscribed, (track) => {
       track.detach().forEach((el) => el.remove())
-      setRemoteCount((n) => Math.max(0, n - 1))
+    })
+    room.on(RoomEvent.ParticipantConnected, (p) => {
+      setParticipants((prev) => [...prev, asEntry(p)])
+    })
+    room.on(RoomEvent.ParticipantDisconnected, (p) => {
+      setParticipants((prev) => prev.filter((x) => x.identity !== p.identity))
     })
     room.on(RoomEvent.Disconnected, () => {
       setJoined(false)
-      setRemoteCount(0)
+      setParticipants([])
       roomRef.current = null
     })
 
     try {
       await room.connect(data.url, data.token)
       await room.localParticipant.setMicrophoneEnabled(true)
+      setParticipants(Array.from(room.remoteParticipants.values(), asEntry))
       roomRef.current = room
       setJoined(true)
     } catch {
@@ -69,7 +75,7 @@ export default function VoiceChat({ roomId, playerName }) {
     roomRef.current?.disconnect()
     roomRef.current = null
     setJoined(false)
-    setRemoteCount(0)
+    setParticipants([])
   }
 
   const toggleMute = async () => {
@@ -90,7 +96,9 @@ export default function VoiceChat({ roomId, playerName }) {
       {joined && (
         <>
           <p className="voice-status">
-            {remoteCount} other {remoteCount === 1 ? 'person' : 'people'} in voice
+            {participants.length === 0
+              ? "You're the only one in voice"
+              : `In voice: you, ${participants.map((p) => p.name).join(', ')}`}
           </p>
           <button onClick={toggleMute}>{muted ? '🔇 Unmute' : '🎙️ Mute'}</button>
           <button onClick={leave}>Leave voice</button>
