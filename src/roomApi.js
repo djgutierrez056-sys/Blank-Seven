@@ -85,9 +85,12 @@ export async function drawNextCard(room) {
     .eq('id', room.id)
     .eq('draw_index', room.draw_index) // optimistic concurrency guard
     .select()
-    .single()
+    .maybeSingle()
   if (error) throw error
-  return data
+  // Guard matched 0 rows — someone else already advanced draw_index (e.g.
+  // two open tabs for the same caller). Not an error: the room is just
+  // already where this call wanted to take it.
+  return data ?? room
 }
 
 export async function setPaused(room, paused) {
@@ -148,7 +151,7 @@ export async function claimChalupa(room, player) {
     .eq('id', room.id)
     .eq('status', 'playing')
     .select()
-    .single()
+    .maybeSingle()
   if (roomError) throw roomError
   if (!nextRoom) throw new Error('Someone already won this round.')
 
