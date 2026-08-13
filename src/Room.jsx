@@ -33,8 +33,22 @@ export default function Room() {
   const [busy, setBusy] = useState(false)
   const [justSynced, setJustSynced] = useState(false)
   const [soundOn, setSoundOn] = useState(() => localStorage.getItem('chalupa:sound') !== 'off')
+  const [voices, setVoices] = useState([])
+  const [voiceURI, setVoiceURI] = useState(() => localStorage.getItem('chalupa:voiceURI') || '')
   const chatMessagesRef = useRef(null)
   const prevDrawIndexRef = useRef(null)
+
+  // Available narrator voices differ per browser/device, so this is a
+  // personal preference (localStorage), not shared room state. The voice
+  // list often loads asynchronously after page load, hence 'voiceschanged'.
+  useEffect(() => {
+    const synth = window.speechSynthesis
+    if (!synth) return
+    const loadVoices = () => setVoices(synth.getVoices())
+    loadVoices()
+    synth.addEventListener('voiceschanged', loadVoices)
+    return () => synth.removeEventListener('voiceschanged', loadVoices)
+  }, [])
 
   const reloadPlayers = useCallback(async () => {
     setPlayers(await fetchPlayers(roomId))
@@ -117,11 +131,17 @@ export default function Room() {
       if (!synth) return
       synth.cancel() // don't let announcements stack up if calls come in fast
       const utter = new SpeechSynthesisUtterance(card.es)
-      utter.lang = 'es-ES'
+      const chosenVoice = synth.getVoices().find((v) => v.voiceURI === voiceURI)
+      if (chosenVoice) {
+        utter.voice = chosenVoice
+        utter.lang = chosenVoice.lang
+      } else {
+        utter.lang = 'es-ES'
+      }
       utter.rate = 0.95
       synth.speak(utter)
     },
-    [soundOn]
+    [soundOn, voiceURI]
   )
 
   // Announces the card name out loud whenever a new one gets called, so
@@ -150,6 +170,25 @@ export default function Room() {
     })
   }
 
+  function handleVoiceChange(e) {
+    const nextURI = e.target.value
+    setVoiceURI(nextURI)
+    localStorage.setItem('chalupa:voiceURI', nextURI)
+    // Preview so the player can hear the pick without waiting for a card.
+    const synth = window.speechSynthesis
+    if (!synth) return
+    synth.cancel()
+    const utter = new SpeechSynthesisUtterance('El Gallo')
+    const chosenVoice = synth.getVoices().find((v) => v.voiceURI === nextURI)
+    if (chosenVoice) {
+      utter.voice = chosenVoice
+      utter.lang = chosenVoice.lang
+    } else {
+      utter.lang = 'es-ES'
+    }
+    synth.speak(utter)
+  }
+
   if (!playerId) return null
   if (loadError) return <p className="error">{loadError}</p>
   if (!room) return <p>Loading room {roomId}...</p>
@@ -159,6 +198,12 @@ export default function Room() {
   const currentCard = currentCardId ? cardById.get(currentCardId) : null
   const winner = players.find((p) => p.id === room.winner_player_id)
   const deckExhausted = room.draw_index >= room.deck.length
+  // Spanish voices first since card names are Spanish, then everything else.
+  const sortedVoices = [...voices].sort((a, b) => {
+    const aEs = a.lang.startsWith('es') ? 0 : 1
+    const bEs = b.lang.startsWith('es') ? 0 : 1
+    return aEs - bEs || a.name.localeCompare(b.name)
+  })
 
   async function handleStart() {
     setBusy(true)
@@ -261,6 +306,22 @@ export default function Room() {
           >
             {soundOn ? '🔔' : '🔕'}
           </button>
+          {sortedVoices.length > 0 && (
+            <select
+              className="voice-select"
+              value={voiceURI}
+              onChange={handleVoiceChange}
+              disabled={!soundOn}
+              title="Narrator voice"
+            >
+              <option value="">Default narrator</option>
+              {sortedVoices.map((v) => (
+                <option key={v.voiceURI} value={v.voiceURI}>
+                  {v.name} ({v.lang})
+                </option>
+              ))}
+            </select>
+          )}
           <span className={`sync-badge ${justSynced ? 'pulse' : ''}`}>🟢 Live</span>
           <p>{players.length} player{players.length === 1 ? '' : 's'}</p>
         </div>

@@ -91,6 +91,15 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   border-color: #d9b98a;
 }
 
+.voice-select {
+  font-size: 0.8rem;
+  padding: 6px 8px;
+  max-width: 160px;
+  background: var(--paper);
+  color: var(--ink);
+  border-color: #d9b98a;
+}
+
 .sync-badge {
   font-size: 0.8rem;
   font-weight: 700;
