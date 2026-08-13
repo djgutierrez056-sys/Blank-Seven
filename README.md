@@ -60,33 +60,19 @@ become the caller) or **join a room** with the code someone shares with you.
 
 ## Voice chat
 
-Each room has an optional **Join voice** button that opens an audio call
-scoped to that room, powered by [Daily.co](https://daily.co)'s free tier
-(10,000 participant-minutes/month). Daily is built for third-party
-embedding, so it stays inline in the sidebar instead of opening a new tab.
+Each room has an optional **Join voice** button that opens an audio-only
+[Jitsi Meet](https://meet.jit.si) session scoped to that room, embedded
+inline via a plain `<iframe allow="microphone">`. It's a free, public
+third-party service — no signup, no API key, no payment method required —
+but that also means calls run on Jitsi's shared public infrastructure
+rather than something we control. Fine for a casual game.
 
-A separate Daily room is created per Chalupa game room, via a Supabase Edge
-Function that holds the Daily API key server-side — the key never reaches
-the browser. Setup:
-
-1. Sign up free at [daily.co](https://dashboard.daily.co/signup) and grab
-   an API key from **Developers** in the dashboard.
-2. Install the Supabase CLI if you don't have it (`npm install -g supabase`
-   or use `npx supabase` for one-off commands).
-3. Log in and link this repo to your Supabase project:
-   ```bash
-   npx supabase login
-   npx supabase link --project-ref oomksfvgrkrbjhngeigp
-   ```
-4. Store your Daily API key as a secret (never committed to the repo) and
-   deploy the function:
-   ```bash
-   npx supabase secrets set DAILY_API_KEY=your-daily-api-key
-   npx supabase functions deploy create-voice-room
-   ```
-5. That's it — the app calls this function automatically when someone clicks
-   **Join voice**. Rooms expire and clean themselves up 6 hours after
-   creation.
+(An earlier version of this used Daily.co with a Supabase Edge Function
+for proper per-room isolation and a nicer embed, but Daily now requires a
+payment method on file even for its free tier, so we backed out to Jitsi.
+The Edge Function code is still in `supabase/functions/create-voice-room`
+if you want to revisit that path later — you'd just need to redeploy
+`VoiceChat.jsx` to call it again and add a card to your Daily account.)
 
 ## Deploying to GitHub Pages
 
