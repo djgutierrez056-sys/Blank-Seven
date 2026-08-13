@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { CARDS } from './cards'
 import VoiceChat from './VoiceChat'
@@ -32,6 +32,7 @@ export default function Room() {
   const [actionError, setActionError] = useState('')
   const [busy, setBusy] = useState(false)
   const [justSynced, setJustSynced] = useState(false)
+  const chatMessagesRef = useRef(null)
 
   const reloadPlayers = useCallback(async () => {
     setPlayers(await fetchPlayers(roomId))
@@ -84,6 +85,12 @@ export default function Room() {
       unsubscribe()
     }
   }, [roomId, playerId, navigate, reloadPlayers, pulseSync])
+
+  useEffect(() => {
+    if (chatMessagesRef.current) {
+      chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight
+    }
+  }, [messages])
 
   const me = players.find((p) => p.id === playerId)
 
@@ -229,21 +236,6 @@ export default function Room() {
               ))}
             </ul>
           </section>
-
-          <section className="history">
-            <h2>Called cards</h2>
-            <div className="history-list">
-              {calledOrder.length === 0 && <p className="hint">None yet.</p>}
-              {[...calledOrder].reverse().map((cardId) => {
-                const card = cardById.get(cardId)
-                return (
-                  <p key={cardId} className="history-item">
-                    <span className="art">{card.art}</span> {card.es}
-                  </p>
-                )
-              })}
-            </div>
-          </section>
         </aside>
 
         <div className="room-main">
@@ -327,7 +319,7 @@ export default function Room() {
           <VoiceChat roomId={roomId} playerName={me.name} />
           <aside className="chat">
             <h2>Chat</h2>
-            <div className="chat-messages">
+            <div className="chat-messages" ref={chatMessagesRef}>
               {messages.length === 0 && <p className="hint">No messages yet.</p>}
               {messages.map((m) => (
                 <p key={m.id} className="chat-message">
@@ -344,6 +336,21 @@ export default function Room() {
               />
               <button type="submit" disabled={!chatInput.trim()}>Send</button>
             </form>
+          </aside>
+
+          <aside className="history">
+            <h2>Called cards</h2>
+            <div className="history-list">
+              {calledOrder.length === 0 && <p className="hint">None yet.</p>}
+              {[...calledOrder].reverse().map((cardId) => {
+                const card = cardById.get(cardId)
+                return (
+                  <p key={cardId} className="history-item">
+                    <span className="art">{card.art}</span> {card.es}
+                  </p>
+                )
+              })}
+            </div>
           </aside>
           </div>
         )}
