@@ -36,7 +36,14 @@ Fill in `.env`:
 ```
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_ROOMS_PIN=your-chosen-pin
 ```
+
+`VITE_ROOMS_PIN` gates the **Rooms** button (top-right of the home page),
+which lists all currently active rooms so you can jump into any of them.
+Since this is a static site with no backend auth, it's a soft gate only —
+anyone who reads the built JS can find the PIN. Don't rely on it for
+anything sensitive.
 
 ## 3. Run it
 
@@ -171,10 +178,11 @@ and publishes the site automatically on every push to `main`.
 
 1. In your repo, go to **Settings → Pages** and set **Source** to
    **GitHub Actions**.
-2. In **Settings → Secrets and variables → Actions**, add two repository
-   secrets: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (same values as
-   your local `.env`). The anon key is meant to be public, but keeping it in
-   secrets avoids hardcoding it into the repo.
+2. In **Settings → Secrets and variables → Actions**, add three repository
+   secrets: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and
+   `VITE_ROOMS_PIN` (same values as your local `.env`). The anon key is
+   meant to be public, but keeping it in secrets avoids hardcoding it into
+   the repo.
 3. Push to `main` — the workflow builds the app and deploys `dist/` to
    Pages. Your site will be live at
    `https://<your-username>.github.io/Blank-Seven/`.

@@ -21,7 +21,65 @@ body {
 h1 { font-size: 2.2rem; margin-bottom: 0; }
 .subtitle { color: #7a5c3e; margin-top: 4px; }
 
-.home { text-align: center; }
+.home { text-align: center; position: relative; }
+
+.rooms-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 0.85rem;
+  padding: 8px 14px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  position: relative;
+  background: var(--paper);
+  border: 2px solid #d9b98a;
+  border-radius: 12px;
+  padding: 24px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  text-align: left;
+}
+.modal h2 { margin-top: 0; }
+.modal input { width: 100%; margin-bottom: 10px; }
+.modal form button { width: 100%; }
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 0 6px;
+  line-height: 1;
+}
+
+.rooms-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.rooms-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #d9b98a;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.room-code { font-weight: 700; }
+.room-meta { flex: 1; font-size: 0.8rem; color: #7a5c3e; }
+.rooms-list button { padding: 6px 12px; font-size: 0.85rem; }
 
 .field {
   display: block;

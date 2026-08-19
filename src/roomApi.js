@@ -209,6 +209,29 @@ export async function startNewRound(room, players) {
   return { room: nextRoom, players: updatedPlayers }
 }
 
+// Active rooms (waiting or in progress) with a player count each, for the
+// admin-only Rooms list on the home page.
+export async function fetchActiveRooms() {
+  const { data: rooms, error: roomsError } = await supabase
+    .from('rooms')
+    .select('id, status, created_at')
+    .in('status', ['waiting', 'playing'])
+    .order('created_at', { ascending: false })
+  if (roomsError) throw roomsError
+  if (rooms.length === 0) return []
+
+  const { data: players, error: playersError } = await supabase
+    .from('players')
+    .select('room_id')
+    .in('room_id', rooms.map((r) => r.id))
+  if (playersError) throw playersError
+
+  const counts = new Map()
+  for (const { room_id } of players) counts.set(room_id, (counts.get(room_id) || 0) + 1)
+
+  return rooms.map((r) => ({ ...r, playerCount: counts.get(r.id) || 0 }))
+}
+
 export async function fetchMessages(roomId) {
   const { data, error } = await supabase
     .from('messages')

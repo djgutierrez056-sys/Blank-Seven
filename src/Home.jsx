@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createRoom, joinRoom } from './roomApi'
+import RoomsPanel from './RoomsPanel'
 
 export default function Home() {
   const navigate = useNavigate()
@@ -8,6 +9,7 @@ export default function Home() {
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [roomsOpen, setRoomsOpen] = useState(false)
 
   async function handleCreate(e) {
     e.preventDefault()
@@ -44,6 +46,20 @@ export default function Home() {
 
   return (
     <div className="home">
+      <button className="rooms-btn" onClick={() => setRoomsOpen(true)}>
+        Rooms
+      </button>
+
+      {roomsOpen && (
+        <RoomsPanel
+          onClose={() => setRoomsOpen(false)}
+          onJoinCode={(roomCode) => {
+            setCode(roomCode)
+            setRoomsOpen(false)
+          }}
+        />
+      )}
+
       <h1>🛶 Chalupa</h1>
       <p className="subtitle">Mexican Lotería, online with friends</p>
 
